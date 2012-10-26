@@ -1,0 +1,131 @@
+#!/bin/bash -e
+# vim: set ts=2:set et:
+
+[ -f hooks/openstack-common ] && . hooks/openstack-common
+
+ARG0=${0##*/}
+PLUGIN=$(config-get plugin)
+EXT_PORT=$(config-get ext-port)
+PRIVATE_ADDRESS=$(unit-get private-address)
+DB_USER=quantum
+QUANTUM_DB=quantum
+
+OVS_PLUGIN_CONF="/etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini"
+NVP_PLUGIN_CONF="/etc/quantum/plugins/nicira/nvp.ini"
+
+case $PLUGIN in
+  "ovs") PLUGIN_CONF=$OVS_PLUGIN_CONF ;;
+  "nvp") PLUGIN_CONF=$NVP_PLUGIN_CONF ;;
+esac
+
+function install_hook() {
+  case $PLUGIN in
+    "ovs")
+      PLUGIN_PKGS="quantum-plugin-openvswitch quantum-plugin-openvswitch-agent"
+    ;;
+    "nvp")
+      # XXX implement nvp
+    ;;
+    *)
+        juju-log "Unsupported plugin specified"
+        exit 1
+    ;;
+  esac
+
+  apt-get install quantum-server $PLUGIN_PKGS \
+                  quantum-dhcp-agent \
+                  quantum-l3-agent \
+                  openvswitch-datapath-dkms
+
+  ovs-vsctl add-br br-int
+  ovs-vsctl add-br br-ex
+}
+
+function config_changed_hook() {
+  ovs-vsctl add-br br-int
+  ovs-vsctl add-br br-ex
+  if [ -n "$EXT_PORT" ]; then
+    juju-log "Adding $EXT_PORT to external bridge for external access"
+    ovs-vsctl add-port br-ex $EXT_PORT
+  fi
+
+  case $PLUGIN in
+    "ovs")
+      CORE_PLUGIN="quantum.plugins.openvswitch.ovs_quantum_plugin.OVSQuantumPluginV2"
+    ;;
+    "nvp")
+      CORE_PLUGIN="quantum.plugins.nicira.nicira_nvp_plugin.QuantumPlugin.NvpPluginV2"
+    ;;
+  esac
+  juju-log "Configuring quantum with core_plugin: $CORE_PLUGIN"
+  set_or_update core_plugin $CORE_PLUGIN /etc/quantum/quantum.conf
+}
+
+function start() {
+
+}
+
+function stop() {
+
+}
+
+function keystone_joined {
+  # advertise our API endpoint to keystone
+  url="http://$(unit-get private-address):9696/v1"
+  public_url="http://$(unit-get public-address):9696/v1"
+  relation-set service="quantum" \
+    region="RegionOne" public_url=$public_url admin_url=$url internal_url=$url
+}
+
+function keystone_changed {
+  # we hopefully get a token in return.  configure middleware accordingly
+  token=$(relation-get admin_token)
+  service_port=$(relation-get service_port)
+  auth_port=$(relation-get auth_port)
+  service_username=$(relation-get service_username)
+  service_password=$(relation-get service_password)
+  service_tenant=$(relation-get service_tenant)
+  [[ -z "$token" ]] || [[ -z "$service_port" ]] || [[ -z "$auth_port" ]] ||
+    [[ -z "$service_username" ]] || [[ -z "$service_password" ]] ||
+    [[ -z "$service_tenant" ]] && juju-log "Peer not ready" &&
+      exit 0
+  [[ "$token" == "-1" ]] &&
+     juju-log "admin token error" && exit 1
+  juju-log "Acquired admin. token"
+  keystone_host=$(relation-get private-address)
+}
+
+function db_joined {
+  juju-log "Requesting access to $QUANTUM_DB for $DB_USER@$PRIVATE_ADDRESS"
+  relation-set database=$QUANTUM_DB username=$DB_USER hostname=$PRIVATE_ADDRESS
+}
+
+function db_changed {
+  DB_HOST=$(relation-get private-address)
+  DB_PASSWORD=$(relation-get password)
+  if [ -z "$DB_HOST" ] || [ -z "$DB_PASSWORD" ] ; then
+    echo "DB_HOST || DB_PASSWORD not yet set. Exit 0 and retry"
+    exit 0
+  else
+    echo "Received password from $DB_HOST"
+  fi
+  juju-log "Configuring registry for access to $QUANTUM_DB@$DB_HOST"
+  set_or_update sql_connection \
+                "mysql://$DB_USER:$DB_PASSWORD@$DB_HOST/$QUANTUM_DB?charset=utf8" \
+                $PLUGIN_CONF
+}
+
+
+case $ARG0 in
+  "install") install_hook ;;
+  "config-changed") config_changed_hook ;;
+  "identity-service-relation-joined") keystone_joined ;;
+  "identity-service-relation-changed") keystone_changed ;;
+  "shared-db-relation-joined") db_joined ;;
+  "shared-db-relation-changed") db_changed;;
+esac
+
+# TODO: Add hooks for rabbitmq integration - dhcpagent seems to require:
+# /etc/quantum/quantum.conf:
+# rabbit_password = openstack
+# rabbit_host = 100.1.1.10

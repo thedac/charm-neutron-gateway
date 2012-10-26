@@ -1,0 +1,36 @@
+options:
+  plugin:
+    default: ovs
+    type: string
+    description: |
+      Network configuration plugin to use to manage
+      the quantum network across quantum and nova-compute
+      nodes. Supported values include:
+      .
+        ovs - OpenVSwitch
+        nvp - Nicera
+  ext-port:
+    type: string
+    description: |
+      External port to use for routing of instance
+      traffic to the external public network.
+  source:
+    type: string
+    description: |
+      Optional configuration to support use of additional sources such as:
+      .
+        - ppa:myteam/ppa
+        - cloud:folsom-proposed
+        - http://my.archive.com/ubuntu main
+      .
+      The last option should be used in conjunction with the key configuration
+      option.
+      .
+      Note that a minimum ceph version of 0.48.2 is required for use with this
+      charm which is NOT provided by the packages in the main Ubuntu archive
+      for precise.
+  key:
+    type: string
+    description: |
+      Key ID to import to the apt keyring to support use with arbitary source
+      configuration from outside of Launchpad archives or PPA's.
