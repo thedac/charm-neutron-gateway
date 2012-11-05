@@ -14,8 +14,6 @@ provides:
   network-manager:
     interface: quantum
 requires:
-  cloud-compute:
-    interface: nova-compute
   shared-db:
     interface: mysql-shared
   amqp:

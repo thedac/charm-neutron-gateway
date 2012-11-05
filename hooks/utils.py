@@ -65,7 +65,7 @@ def configure_source():
         with open('/etc/apt/sources.list.d/ceph.list', 'w') as apt:
             apt.write("deb " + source + "\n")
         key = config_get('key')
-        if key != "":
+        if key:
             cmd = [
                 'apt-key',
                 'adv', '--keyserver keyserver.ubuntu.com',
@@ -183,3 +183,8 @@ def get_host_ip(hostname=unit_get('private-address')):
         hostname
         ]
     return subprocess.check_output(cmd).strip()  # IGNORE:E1103
+
+
+def restart(*services):
+    for service in services:
+        subprocess.check_call(['service', service, 'restart'])
