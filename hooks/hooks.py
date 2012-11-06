@@ -90,7 +90,7 @@ def render_quantum_conf():
 def render_plugin_conf():
     context = get_db_conf()
     if context:
-        context['local_ip'] = utils.unit_get('private-address')
+        context['local_ip'] = utils.get_host_ip()
         plugin = utils.config_get('plugin')
         conf_file = quantum_utils.PLUGIN_CONF[plugin]
         with open(conf_file, "w") as conf:

@@ -42,6 +42,17 @@ except ImportError:
     import jinja2
 
 
+try:
+    import dns.resolver
+    import dns.ipv4
+    import dns.ipv6
+except ImportError:
+    install('python-dnspython')
+    import dns.resolver
+    import dns.ipv4
+    import dns.ipv6
+
+
 def render_template(template_name, context, template_dir=TEMPLATES_DIR):
     templates = jinja2.Environment(
                     loader=jinja2.FileSystemLoader(template_dir)
@@ -177,12 +188,19 @@ def get_unit_hostname():
 
 
 def get_host_ip(hostname=unit_get('private-address')):
-    cmd = [
-        'dig',
-        '+short',
-        hostname
-        ]
-    return subprocess.check_output(cmd).strip()  # IGNORE:E1103
+    try:
+        # Test to see if already an IPv4 address
+        dns.ipv4.inet_aton(hostname)
+        return hostname
+    except dns.exception.SyntaxError:
+        pass
+    try:
+        answers = dns.resolver.query(hostname, 'A')
+        if answers:
+            return answers[0].address
+    except dns.resolver.NXDOMAIN:
+        pass
+    return None
 
 
 def restart(*services):
