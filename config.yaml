@@ -8,12 +8,53 @@ options:
       nodes. Supported values include:
       .
         ovs - OpenVSwitch
-        nvp - Nicera
   ext-port:
     type: string
     description: |
       External port to use for routing of instance
       traffic to the external public network.
+  region:
+    type: string
+    default: RegionOne
+    description: |
+      OpenStack region that this quantum service supports.
+  conf-ext-net:
+    type: string
+    default: doti
+    description: Configure external network for quantum using
+      network configuration below.
+  ext-net-name:
+    type: string
+    default: ext_net
+    description: |
+      Name of external network configuration to create for
+      public access to instances/floating IP's.
+  ext-gw-ip:
+    type: string
+    default: 192.168.21.100
+    description: |
+      IP address to assign to external bridge for external network
+      access.
+  ext-net-cidr:
+    type: string
+    default: 192.168.21.0/24
+    description: |
+      External network addressing
+  ext-net-gateway:
+    type: string
+    default: 192.168.21.1
+    description: |
+      IP of the public network gateway (i.e. external router)
+  pool-floating-start:
+    type: string
+    default: 192.168.21.130
+    description: |
+      Start of default floating IP range.
+  pool-floating-end:
+    type: string
+    default: 192.168.21.200
+    description: |
+      End of default floating IP range.
   source:
     type: string
     description: |

@@ -2,61 +2,72 @@
 
 import utils
 import sys
-import quantum_utils
+import quantum_utils as qutils
 import os
 
-
-PLUGIN_PKGS = {
-    "ovs": [  # TODO: Assumes Quantum Provider Gateway
-        "quantum-plugin-openvswitch",
-        "quantum-plugin-openvswitch-agent",
-        "quantum-l3-agent",
-        "quantum-dhcp-agent"
-        ],
-    "nvp": ["quantum-plugin-nicira"]  # No agent required
-    }
+PLUGIN = utils.config_get('plugin')
 
 
 def install():
     utils.configure_source()
     # TODO: when using the nicira plugin /etc/default/quantum-server
     # will also need to be updated to point to the correct configuration
-    plugin = utils.config_get('plugin')
-    if plugin in PLUGIN_PKGS.keys():
-        if plugin == "ovs":
+    if PLUGIN in qutils.PLUGIN_PKGS.keys():
+        if PLUGIN == "ovs":
             # Install OVS DKMS first to ensure that the ovs module
             # loaded supports GRE tunnels
             utils.install('openvswitch-datapath-dkms')
         utils.install('quantum-server',
                       'python-mysqldb',
-                      *PLUGIN_PKGS[plugin])
+                      *qutils.PLUGIN_PKGS[PLUGIN])
     else:
         utils.juju_log('ERROR', 'Please provide a valid plugin config')
         sys.exit(1)
 
 
 def config_changed():
-    plugin = utils.config_get('plugin')
-    if plugin in PLUGIN_PKGS.keys():
+    if PLUGIN in qutils.PLUGIN_PKGS.keys():
         render_api_paste_conf()
         render_quantum_conf()
         render_plugin_conf()
-        if plugin == "ovs":
-            # TODO: Defaults to Quantum Provider Router
-            quantum_utils.add_bridge('br-int')
-            quantum_utils.add_bridge('br-ex')
+        render_l3_agent_conf()
+        if PLUGIN == "ovs":
+            qutils.add_bridge('br-int')
+            qutils.add_bridge('br-ex')
             ext_port = utils.config_get('ext-port')
             if ext_port:
-                quantum_utils.add_bridge_port('br-ex', ext_port)
-            render_l3_agent_conf()
-            utils.restart('quantum-l3-agent',
-                          'quantum-plugin-openvswitch-agent',
-                          'quantum-dhcp-agent')
-        utils.restart('quantum-server')
+                qutils.add_bridge_port('br-ex', ext_port)
+        utils.restart(*(qutils.PLUGIN_AGENT[PLUGIN] + \
+                        qutils.GATEWAY_AGENTS[PLUGIN]))
     else:
         utils.juju_log('ERROR',
                        'Please provide a valid plugin config')
         sys.exit(1)
+
+    configure_networking()
+
+
+def configure_networking():
+    keystone_conf = get_keystone_conf()
+    db_conf = get_db_conf()
+    if (utils.config_get('conf-ext-net') and
+        keystone_conf and
+        db_conf):
+        qutils.configure_ext_net(
+                 username=keystone_conf['service_username'],
+                 password=keystone_conf['service_password'],
+                 tenant=keystone_conf['service_tenant'],
+                 url="http://{}:{}/v2.0/".format(
+                        keystone_conf['keystone_host'],
+                        keystone_conf['auth_port']
+                        ),
+                 ext_net_name=utils.config_get('ext-net-name'),
+                 gateway_ip=utils.config_get('ext-gw-ip'),
+                 default_gateway=utils.config_get('ext-net-gateway'),
+                 cidr=utils.config_get('ext-net-cidr'),
+                 start_floating_ip=utils.config_get('pool-floating-start'),
+                 end_floating_ip=utils.config_get('pool-floating-end')
+            )
 
 
 def upgrade_charm():
@@ -66,56 +77,71 @@ def upgrade_charm():
 
 def render_l3_agent_conf():
     context = get_keystone_conf()
-    if context:
-        with open(quantum_utils.L3_AGENT_CONF, "w") as conf:
-            conf.write(utils.render_template("l3_agent.ini", context))
+    if (context and
+        os.path.exists(qutils.L3_AGENT_CONF)):
+        with open(qutils.L3_AGENT_CONF, "w") as conf:
+            conf.write(utils.render_template(
+                            os.path.basename(qutils.L3_AGENT_CONF),
+                            context
+                            )
+                       )
 
 
 def render_api_paste_conf():
     context = get_keystone_conf()
-    if context:
-        with open(quantum_utils.QUANTUM_API_CONF, "w") as conf:
-            conf.write(utils.render_template("api-paste.ini", context))
+    if (context and
+        os.path.exists(qutils.QUANTUM_API_CONF)):
+        with open(qutils.QUANTUM_API_CONF, "w") as conf:
+            conf.write(utils.render_template(
+                            os.path.basename(qutils.QUANTUM_API_CONF),
+                            context
+                            )
+                       )
 
 
 def render_quantum_conf():
     context = get_rabbit_conf()
-    if context:
+    if (context and
+        os.path.exists(qutils.QUANTUM_CONF)):
         context['core_plugin'] = \
-            quantum_utils.CORE_PLUGIN[utils.config_get('plugin')]
-        with open(quantum_utils.QUANTUM_CONF, "w") as conf:
-            conf.write(utils.render_template("quantum.conf", context))
+            qutils.CORE_PLUGIN[PLUGIN]
+        with open(qutils.QUANTUM_CONF, "w") as conf:
+            conf.write(utils.render_template(
+                            os.path.basename(qutils.QUANTUM_CONF),
+                            context
+                            )
+                       )
 
 
 def render_plugin_conf():
     context = get_db_conf()
-    if context:
+    if (context and
+        os.path.exists(qutils.PLUGIN_CONF[PLUGIN])):
         context['local_ip'] = utils.get_host_ip()
-        plugin = utils.config_get('plugin')
-        conf_file = quantum_utils.PLUGIN_CONF[plugin]
+        conf_file = qutils.PLUGIN_CONF[PLUGIN]
         with open(conf_file, "w") as conf:
-            conf.write(utils.render_template(os.path.basename(conf_file),
-                                             context))
+            conf.write(utils.render_template(
+                            os.path.basename(conf_file),
+                            context
+                            )
+                       )
 
 
 def keystone_joined():
     url = "http://{}:9696/".format(utils.unit_get('private-address'))
-    utils.relation_set(service="quantum",
-                       region="RegionOne",
+    utils.relation_set(service=qutils.KEYSTONE_SERVICE,
+                       region=utils.config_get('region'),
                        public_url=url,
                        admin_url=url,
                        internal_url=url)
 
 
 def keystone_changed():
-    if os.path.exists(quantum_utils.L3_AGENT_CONF):
-        render_l3_agent_conf()  # Restart quantum_l3_agent
-        utils.restart('quantum-l3-agent')
-    render_api_paste_conf()  # Restart quantum server
-    utils.restart('quantum-server')
-    if os.path.exists(quantum_utils.DHCP_AGENT_CONF):
-        utils.restart('quantum-dhcp-agent')
+    render_l3_agent_conf()
+    render_api_paste_conf()
+    utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
     notify_agents()
+    configure_networking()
 
 
 def get_keystone_conf():
@@ -141,16 +167,16 @@ def get_keystone_conf():
 
 
 def db_joined():
-    utils.relation_set(username=quantum_utils.DB_USER,
-                       database=quantum_utils.QUANTUM_DB,
+    utils.relation_set(username=qutils.DB_USER,
+                       database=qutils.QUANTUM_DB,
                        hostname=utils.unit_get('private-address'))
 
 
 def db_changed():
     render_plugin_conf()
-    utils.restart('quantum-server')
-    if utils.config_get('plugin') == 'ovs':
-        utils.restart('quantum-plugin-openvswitch-agent')
+    utils.restart(*(qutils.GATEWAY_AGENTS[PLUGIN] + \
+                    qutils.PLUGIN_AGENT[PLUGIN]))
+    configure_networking()
 
 
 def get_db_conf():
@@ -159,10 +185,10 @@ def get_db_conf():
             conf = {
                 "host": utils.relation_get('private-address',
                                            unit, relid),
-                "user": quantum_utils.DB_USER,
+                "user": qutils.DB_USER,
                 "password": utils.relation_get('password',
                                                unit, relid),
-                "db": quantum_utils.QUANTUM_DB
+                "db": qutils.QUANTUM_DB
                 }
             if None not in conf.itervalues():
                 return conf
@@ -170,15 +196,14 @@ def get_db_conf():
 
 
 def amqp_joined():
-    utils.relation_set(username=quantum_utils.RABBIT_USER,
-                       vhost=quantum_utils.RABBIT_VHOST)
+    utils.relation_set(username=qutils.RABBIT_USER,
+                       vhost=qutils.RABBIT_VHOST)
 
 
 def amqp_changed():
     render_quantum_conf()
-    utils.restart('quantum-server', 'quantum-dhcp-agent')
-    if utils.config_get('plugin') == 'ovs':
-        utils.restart('quantum-plugin-openvswitch-agent')
+    utils.restart(*(qutils.GATEWAY_AGENTS[PLUGIN] + \
+                    qutils.PLUGIN_AGENT[PLUGIN]))
 
 
 def get_rabbit_conf():
@@ -187,8 +212,8 @@ def get_rabbit_conf():
             conf = {
                 "rabbit_host": utils.relation_get('private-address',
                                                   unit, relid),
-                "rabbit_virtual_host": quantum_utils.RABBIT_VHOST,
-                "rabbit_userid": quantum_utils.RABBIT_USER,
+                "rabbit_virtual_host": qutils.RABBIT_VHOST,
+                "rabbit_userid": qutils.RABBIT_USER,
                 "rabbit_password": utils.relation_get('password',
                                                       unit, relid)
                 }
@@ -201,7 +226,7 @@ def nm_joined():
     keystone_conf = get_keystone_conf()
     if keystone_conf:
         utils.relation_set(**keystone_conf)  # IGNORE:W0142
-    utils.relation_set(plugin=utils.config_get('plugin'))
+    utils.relation_set(plugin=PLUGIN)
 
 
 def notify_agents():
@@ -209,7 +234,7 @@ def notify_agents():
     if keystone_conf:
         for relid in utils.relation_ids('network-manager'):
             utils.relation_set(relid=relid,
-                               plugin=utils.config_get('plugin'),
+                               plugin=PLUGIN,
                                **keystone_conf)
 
 

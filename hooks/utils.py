@@ -41,16 +41,13 @@ except ImportError:
     install('python-jinja2')
     import jinja2
 
-
 try:
     import dns.resolver
     import dns.ipv4
-    import dns.ipv6
 except ImportError:
     install('python-dnspython')
     import dns.resolver
     import dns.ipv4
-    import dns.ipv6
 
 
 def render_template(template_name, context, template_dir=TEMPLATES_DIR):
@@ -60,20 +57,29 @@ def render_template(template_name, context, template_dir=TEMPLATES_DIR):
     template = templates.get_template(template_name)
     return template.render(context)
 
+CLOUD_ARCHIVE = \
+""" # Ubuntu Cloud Archive
+deb http://ubuntu-cloud.archive.canonical.com/ubuntu {} main
+"""
+
 
 def configure_source():
-    source = config_get('source')
+    source = str(config_get('source'))
     if not source:
         return
-    if (source.startswith('ppa:') or
-        source.startswith('cloud:')):
+    if source.startswith('ppa:'):
         cmd = [
             'add-apt-repository',
             source
             ]
         subprocess.check_call(cmd)
+    if source.startswith('cloud:'):
+        install('ubuntu-cloud-keyring')
+        pocket = source.split(':')[1]
+        with open('/etc/apt/sources.list.d/cloud-archive.list', 'w') as apt:
+            apt.write(CLOUD_ARCHIVE.format(pocket))
     if source.startswith('http:'):
-        with open('/etc/apt/sources.list.d/ceph.list', 'w') as apt:
+        with open('/etc/apt/sources.list.d/quantum.list', 'w') as apt:
             apt.write("deb " + source + "\n")
         key = config_get('key')
         if key:
