@@ -172,5 +172,5 @@ def configure_ext_net(username,
     subprocess.check_call(['ip', 'addr', 'add',
                            '{}/{}'.format(gateway_ip, ext_net_len),
                            'dev', EXT_BRIDGE])
-    subprocess.check_call(['ip', 'addr', 'set',
+    subprocess.check_call(['ip', 'link', 'set',
                            EXT_BRIDGE, 'up'])
