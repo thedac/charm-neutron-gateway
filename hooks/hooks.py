@@ -31,6 +31,7 @@ def config_changed():
         render_quantum_conf()
         render_plugin_conf()
         render_l3_agent_conf()
+        render_novarc()
         if PLUGIN == "ovs":
             qutils.add_bridge('br-int')
             qutils.add_bridge('br-ex')
@@ -99,6 +100,13 @@ def render_api_paste_conf():
                        )
 
 
+def render_novarc():
+    context = get_keystone_conf()
+    if context:
+        with open('/etc/quantum/novarc', "w") as conf:
+            conf.write(utils.render_template('novarc', context))
+
+
 def render_quantum_conf():
     context = get_rabbit_conf()
     if (context and
@@ -139,6 +147,7 @@ def keystone_joined():
 def keystone_changed():
     render_l3_agent_conf()
     render_api_paste_conf()
+    render_novarc()
     utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
     notify_agents()
     configure_networking()
