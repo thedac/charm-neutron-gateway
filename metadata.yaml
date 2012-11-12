@@ -11,7 +11,7 @@ description: |
   advanced network capabilities (e.g., QoS, ACLs, network monitoring,
   etc.)
 provides:
-  network-manager:
+  quantum-network-service:
     interface: quantum
 requires:
   shared-db:

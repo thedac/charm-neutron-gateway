@@ -241,7 +241,7 @@ def nm_joined():
 def notify_agents():
     keystone_conf = get_keystone_conf()
     if keystone_conf:
-        for relid in utils.relation_ids('network-manager'):
+        for relid in utils.relation_ids('quantum-network-service'):
             utils.relation_set(relid=relid,
                                plugin=PLUGIN,
                                **keystone_conf)
@@ -257,7 +257,7 @@ utils.do_hooks({
     "shared-db-relation-changed": db_changed,
     "amqp-relation-joined": amqp_joined,
     "amqp-relation-changed": amqp_changed,
-    "network-manager-relation-joined": nm_joined,
+    "quantum-network-service-relation-joined": nm_joined,
     })
 
 sys.exit(0)
