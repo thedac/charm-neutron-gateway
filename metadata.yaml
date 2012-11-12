@@ -20,5 +20,3 @@ requires:
     interface: rabbitmq
   identity-service:
     interface: keystone
-  cloud-controller:
-    interface: nova
