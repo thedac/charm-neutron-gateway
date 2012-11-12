@@ -242,7 +242,7 @@ def notify_agents():
     keystone_conf = get_keystone_conf()
     if keystone_conf:
         for relid in utils.relation_ids('quantum-network-service'):
-            utils.relation_set(relid=relid,
+            utils.relation_set(rid=relid,
                                plugin=PLUGIN,
                                **keystone_conf)
 
