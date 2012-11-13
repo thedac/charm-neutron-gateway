@@ -65,10 +65,6 @@ options:
       .
       The last option should be used in conjunction with the key configuration
       option.
-      .
-      Note that a minimum ceph version of 0.48.2 is required for use with this
-      charm which is NOT provided by the packages in the main Ubuntu archive
-      for precise.
   key:
     type: string
     description: |
