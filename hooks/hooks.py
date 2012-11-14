@@ -10,16 +10,12 @@ PLUGIN = utils.config_get('plugin')
 
 def install():
     utils.configure_source()
-    # TODO: when using the nicira plugin /etc/default/quantum-server
-    # will also need to be updated to point to the correct configuration
     if PLUGIN in qutils.PLUGIN_PKGS.keys():
-        if PLUGIN == "ovs":
+        if PLUGIN == qutils.OVS:
             # Install OVS DKMS first to ensure that the ovs module
             # loaded supports GRE tunnels
             utils.install('openvswitch-datapath-dkms')
-        utils.install('quantum-server',
-                      'python-mysqldb',
-                      *qutils.PLUGIN_PKGS[PLUGIN])
+        utils.install(*qutils.GATEWAY_PKGS[PLUGIN])
     else:
         utils.juju_log('ERROR', 'Please provide a valid plugin config')
         sys.exit(1)
@@ -32,14 +28,13 @@ def config_changed():
         render_plugin_conf()
         render_l3_agent_conf()
         render_novarc()
-        if PLUGIN == "ovs":
-            qutils.add_bridge('br-int')
-            qutils.add_bridge('br-ex')
+        if PLUGIN == qutils.OVS:
+            qutils.add_bridge(qutils.INT_BRIDGE)
+            qutils.add_bridge(qutils.EXT_BRIDGE)
             ext_port = utils.config_get('ext-port')
             if ext_port:
-                qutils.add_bridge_port('br-ex', ext_port)
-        utils.restart(*(qutils.PLUGIN_AGENT[PLUGIN] + \
-                        qutils.GATEWAY_AGENTS[PLUGIN]))
+                qutils.add_bridge_port(qutils.EXT_BRIDGE, ext_port)
+        utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
     else:
         utils.juju_log('ERROR',
                        'Please provide a valid plugin config')
@@ -183,8 +178,7 @@ def db_joined():
 
 def db_changed():
     render_plugin_conf()
-    utils.restart(*(qutils.GATEWAY_AGENTS[PLUGIN] + \
-                    qutils.PLUGIN_AGENT[PLUGIN]))
+    utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
     configure_networking()
 
 
@@ -211,8 +205,7 @@ def amqp_joined():
 
 def amqp_changed():
     render_quantum_conf()
-    utils.restart(*(qutils.GATEWAY_AGENTS[PLUGIN] + \
-                    qutils.PLUGIN_AGENT[PLUGIN]))
+    utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
 
 
 def get_rabbit_conf():
@@ -242,7 +235,7 @@ def notify_agents():
     keystone_conf = get_keystone_conf()
     if keystone_conf:
         for relid in utils.relation_ids('quantum-network-service'):
-            utils.relation_set(rid=relid,
+            utils.relation_set(rid=relid,  # IGNORE:W0142
                                plugin=PLUGIN,
                                **keystone_conf)
 

@@ -1,20 +1,23 @@
-import utils
 import subprocess
+import shutil
+from utils import juju_log as log, install, start, stop
 
 try:
     from quantumclient.v2_0 import client
 except ImportError:
-    utils.install('python-quantumclient')
+    install('python-quantumclient')
     from quantumclient.v2_0 import client
 
+OVS = "ovs"
+NVP = "nvp"
 
 OVS_PLUGIN = \
     "quantum.plugins.openvswitch.ovs_quantum_plugin.OVSQuantumPluginV2"
 NVP_PLUGIN = \
     "quantum.plugins.nicira.nicira_nvp_plugin.QuantumPlugin.NvpPluginV2"
 CORE_PLUGIN = {
-    "ovs": OVS_PLUGIN,
-    "nvp": NVP_PLUGIN
+    OVS: OVS_PLUGIN,
+    NVP: NVP_PLUGIN
     }
 
 OVS_PLUGIN_CONF = \
@@ -22,30 +25,39 @@ OVS_PLUGIN_CONF = \
 NVP_PLUGIN_CONF = \
     "/etc/quantum/plugins/nicira/nvp.ini"
 PLUGIN_CONF = {
-    "ovs": OVS_PLUGIN_CONF,
-    "nvp": NVP_PLUGIN_CONF
+    OVS: OVS_PLUGIN_CONF,
+    NVP: NVP_PLUGIN_CONF
     }
 
-PLUGIN_PKGS = {
-    "ovs": [
+GATEWAY_PKGS = {
+    OVS: [
         "quantum-plugin-openvswitch",
         "quantum-plugin-openvswitch-agent",
         "quantum-l3-agent",
-        "quantum-dhcp-agent"
+        "quantum-dhcp-agent",
+        'quantum-server',
+        'python-mysqldb'
         ],
-    "nvp": [  # No agent required
+    NVP: [
         "quantum-plugin-nicira"
         ]
     }
 
+PLUGIN_PKGS = {
+    OVS: [
+        "quantum-plugin-openvswitch-agent"
+        ]
+    }
+
 PLUGIN_AGENT = {
-    "ovs": [
-        "quantum-plugin-openvswitch-agent",
+    OVS: [
+        "quantum-plugin-openvswitch-agent"
         ]
     }
 
 GATEWAY_AGENTS = {
-    "ovs": [
+    OVS: [
+        "quantum-plugin-openvswitch-agent",
         "quantum-server",
         "quantum-l3-agent",
         "quantum-dhcp-agent"
@@ -64,23 +76,18 @@ DHCP_AGENT_CONF = "/etc/quantum/dhcp_agent.ini"
 RABBIT_USER = "nova"
 RABBIT_VHOST = "nova"
 
-EXT_BRIDGE = 'br-ex'
-INT_BRIDGE = 'br-int'
-
 
 def add_bridge(name):
     status = subprocess.check_output(["ovs-vsctl", "show"])
     if "Bridge {}".format(name) not in status:
-        utils.juju_log('INFO',
-                       'Creating bridge {}'.format(name))
+        log('INFO', 'Creating bridge {}'.format(name))
         subprocess.check_call(["ovs-vsctl", "add-br", name])
 
 
 def del_bridge(name):
     status = subprocess.check_output(["ovs-vsctl", "show"])
     if "Bridge {}".format(name) in status:
-        utils.juju_log('INFO',
-                       'Deleting bridge {}'.format(name))
+        log('INFO', 'Deleting bridge {}'.format(name))
         subprocess.check_call(["ovs-vsctl", "del-br", name])
 
 
@@ -88,9 +95,8 @@ def add_bridge_port(name, port):
     status = subprocess.check_output(["ovs-vsctl", "show"])
     if ("Bridge {}".format(name) in status and
         "Interface \"{}\"".format(port) not in status):
-        utils.juju_log('INFO',
-                       'Adding port {} to bridge {}'
-                        .format(port, name))
+        log('INFO',
+            'Adding port {} to bridge {}'.format(port, name))
         subprocess.check_call(["ovs-vsctl", "add-port", name, port])
         subprocess.check_call(["ip", "link", "set", port, "up"])
 
@@ -99,11 +105,26 @@ def del_bridge_port(name, port):
     status = subprocess.check_output(["ovs-vsctl", "show"])
     if ("Bridge {}".format(name) in status and
         "Interface \"{}\"".format(port) in status):
-        utils.juju_log('INFO',
-                       'Deleting port {} from bridge {}'
-                        .format(port, name))
+        log('INFO',
+            'Deleting port {} from bridge {}'.format(port, name))
         subprocess.check_call(["ovs-vsctl", "del-port", name, port])
         subprocess.check_call(["ip", "link", "set", port, "down"])
+
+
+QEMU_CONF = '/etc/libvirt/qemu.conf'
+
+
+def configure_libvirt():
+    log('INFO',
+        'Configuring default permissions in libvirt-bin')
+    shutil.copyfile('files/qemu.conf',
+                    QEMU_CONF)
+    stop('libvirt-bin')
+    start('libvirt-bin')
+
+
+EXT_BRIDGE = 'br-ex'
+INT_BRIDGE = 'br-int'
 
 
 def configure_ext_net(username,
@@ -125,21 +146,21 @@ def configure_ext_net(username,
 
     networks = quantum.list_networks(name=ext_net_name)
     if len(networks['networks']) == 0:
-        utils.juju_log('INFO',
-                       'Configuring external bridge')
+        log('INFO',
+            'Configuring external bridge')
         network_msg = {
             'network': {
                 'name': ext_net_name,
                 'router:external': True
             }
         }
-        utils.juju_log('INFO',
-                       'Creating new external network definition: {}'
-                            .format(ext_net_name))
+        log('INFO',
+            'Creating new external network definition: {}'
+                .format(ext_net_name))
         network = quantum.create_network(network_msg)
-        utils.juju_log('INFO',
-                       'New external network created: {}'
-                            .format(network['network']['id']))
+        log('INFO',
+            'New external network created: {}'
+                .format(network['network']['id']))
 
         subnet_msg = {
             'subnet': {
@@ -157,16 +178,30 @@ def configure_ext_net(username,
                  ]
             }
         }
-        utils.juju_log('INFO',
-                       'Creating new subnet for {}'
-                            .format(ext_net_name))
+        log('INFO',
+            'Creating new subnet for {}'.format(ext_net_name))
         subnet = quantum.create_subnet(subnet_msg)
-        utils.juju_log('INFO',
-                       'New subnet created: {}'
-                            .format(subnet['subnet']['id']))
+        log('INFO',
+            'New subnet created: {}'.format(subnet['subnet']['id']))
 
-    utils.juju_log('INFO',
-                   'Configuring external bridge connectivity')
+        log('INFO',
+            'Creating provider router for external network access')
+        router = quantum.create_router({'router': {'name': 'provider-router'}})
+        log('INFO',
+            'New router created: {}'.format(router['router']['id']))
+
+        log('INFO',
+            'Plugging router into ext_net')
+        router = \
+            quantum.add_gateway_router(
+                                router=['router']['id'],
+                                body={'network_id': network['network']['id']}
+                                )
+        log('INFO',
+            'Router connected to ext_net')
+
+    log('INFO',
+        'Configuring external bridge connectivity')
     subprocess.check_call(['ip', 'addr', 'flush',
                            'dev', EXT_BRIDGE])
     subprocess.check_call(['ip', 'addr', 'add',

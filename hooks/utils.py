@@ -212,3 +212,13 @@ def get_host_ip(hostname=unit_get('private-address')):
 def restart(*services):
     for service in services:
         subprocess.check_call(['service', service, 'restart'])
+
+
+def stop(*services):
+    for service in services:
+        subprocess.check_call(['service', service, 'stop'])
+
+
+def start(*services):
+    for service in services:
+        subprocess.check_call(['service', service, 'start'])
