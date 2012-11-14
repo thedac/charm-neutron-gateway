@@ -194,7 +194,7 @@ def configure_ext_net(username,
             'Plugging router into ext_net')
         router = \
             quantum.add_gateway_router(
-                                router=['router']['id'],
+                                router=router['router']['id'],
                                 body={'network_id': network['network']['id']}
                                 )
         log('INFO',
