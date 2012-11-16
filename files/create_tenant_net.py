@@ -7,14 +7,23 @@ import os
 import sys
 import logging
 
-usage = "Usage: %prog [options] name cidr"
+usage = """Usage: %prog [options] name cidr
+
+For example:
+
+  %prog -t admin -r provider-router admin_net 10.5.5.0/24
+
+will create a new network for the admin tenant called 'admin_net' with a
+default gateway of 10.5.5.1 and a dhcp allocation range of
+10.5.5.2->10.5.5.254
+"""
 
 if __name__ == '__main__':
     parser = optparse.OptionParser(usage)
     parser.add_option('-t', '--tenant',
-                      help='Tenant name to create private network for',
+                      help='Tenant name to create network for',
                       dest='tenant', action='store',
-                      default=os.environ['OS_TENANT_NAME'])
+                      default=None)
     parser.add_option('-s', '--shared',
                       help='Create a shared rather than private network',
                       dest='shared', action='store_true', default=False)
@@ -24,6 +33,12 @@ if __name__ == '__main__':
     parser.add_option("-d", "--debug",
                       help="Enable debug logging",
                       dest="debug", action="store_true",  default=False)
+    parser.add_option("-D", "--disable-dhcp",
+                      help="Disable dhcp on network",
+                      dest="dhcp", action="store_false",  default=True)
+    parser.add_option("-N", "--dns-nameservers",
+                      help="Comma separated list of dns servers to use.",
+                      dest="dns_servers", action="store",  default=None)
     (opts, args) = parser.parse_args()
 
     if len(args) != 2:
@@ -51,7 +66,8 @@ if __name__ == '__main__':
     # Resolve tenant id
     tenant_id = None
     for tenant in [t._info for t in keystone.tenants.list()]:
-        if tenant['name'] == opts.tenant:
+        if (tenant['name'] ==
+            (opts.tenant or os.environ['OS_TENANT_NAME'])):
             tenant_id = tenant['id']
             break  # Tenant ID found - stop looking
     if not tenant_id:
@@ -70,7 +86,7 @@ if __name__ == '__main__':
                 'tenant_id': tenant_id
             }
         }
-        network = quantum.create_network(network_msg)
+        network = quantum.create_network(network_msg)['network']
     else:
         logging.error('Network %s already exists.', net_name)
         network = networks['networks'][0]
@@ -84,24 +100,33 @@ if __name__ == '__main__':
             'subnet': {
                 'name': subnet_name,
                 'network_id': network['id'],
-                'enable_dhcp': True,
+                'enable_dhcp': opts.dhcp,
                 'cidr': cidr,
                 'ip_version': 4,
                 'tenant_id': tenant_id
             }
         }
-        subnet = quantum.create_subnet(subnet_msg)
+        subnet = quantum.create_subnet(subnet_msg)['subnet']
     else:
         logging.warning('Subnet %s already exists.', subnet_name)
         subnet = subnets['subnets'][0]
+
+    if opts.dns_servers:
+        msg = {
+            'dns_servers': opts.dns_servers.split(',')
+        }
+        logging.info('Updating dns_servers information for subnet %s',
+                     subnet_name)
+        quantum.update_subnet(subnet['id'], msg)
 
     # Plug subnet into router
     if opts.router:
         routers = quantum.list_routers(name=opts.router)
         if len(routers['routers']) == 0:
-            logging.error('Unable to locate router %s', opts.router)
+            logging.error('Unable to locate provider router %s', opts.router)
             sys.exit(1)
         else:
+            ports = quantum.list_ports()
             logging.info('Adding interface from %s to %s',
                          opts.router, subnet_name)
             router = routers['routers'][0]
