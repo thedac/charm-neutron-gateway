@@ -26,8 +26,8 @@ if __name__ == '__main__':
                       dest="debug", action="store_true",  default=False)
     (opts, args) = parser.parse_args()
 
-    if len(args) != 3:
-        parser.print_usage()
+    if len(args) != 2:
+        parser.print_help()
         sys.exit(1)
 
     if opts.debug:
@@ -35,9 +35,9 @@ if __name__ == '__main__':
     else:
         logging.basicConfig(level=logging.INFO)
 
-    net_name = args[1]
+    net_name = args[0]
     subnet_name = "{}_subnet".format(net_name)
-    cidr = args[2]
+    cidr = args[1]
 
     keystone = ks_client.Client(username=os.environ['OS_USERNAME'],
                                 password=os.environ['OS_PASSWORD'],
@@ -73,7 +73,7 @@ if __name__ == '__main__':
         network = quantum.create_network(network_msg)
     else:
         logging.error('Network %s already exists.', net_name)
-        network = networks['subnets'][0]
+        network = networks['networks'][0]
 
     # Create subnet
     subnets = quantum.list_subnets(name=subnet_name)
@@ -83,7 +83,7 @@ if __name__ == '__main__':
         subnet_msg = {
             'subnet': {
                 'name': subnet_name,
-                'network_id': network['network']['id'],
+                'network_id': network['id'],
                 'enable_dhcp': True,
                 'cidr': cidr,
                 'ip_version': 4,
@@ -105,5 +105,5 @@ if __name__ == '__main__':
             logging.info('Adding interface from %s to %s',
                          opts.router, subnet_name)
             router = routers['routers'][0]
-            quantum.add_interface_router(router['router']['id'],
-                                         {'subnet_id': subnet['subnet']['id']})
+            quantum.add_interface_router(router['id'],
+                                         {'subnet_id': subnet['id']})
