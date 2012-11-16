@@ -200,12 +200,13 @@ def configure_ext_net(username,
         log('INFO',
             'Router connected to ext_net')
 
-    log('INFO',
-        'Configuring external bridge connectivity')
-    subprocess.check_call(['ip', 'addr', 'flush',
-                           'dev', EXT_BRIDGE])
-    subprocess.check_call(['ip', 'addr', 'add',
-                           '{}/{}'.format(gateway_ip, ext_net_len),
-                           'dev', EXT_BRIDGE])
-    subprocess.check_call(['ip', 'link', 'set',
-                           EXT_BRIDGE, 'up'])
+    if gateway_ip:
+        log('INFO',
+            'Configuring external bridge connectivity')
+        subprocess.check_call(['ip', 'addr', 'flush',
+                               'dev', EXT_BRIDGE])
+        subprocess.check_call(['ip', 'addr', 'add',
+                               '{}/{}'.format(gateway_ip, ext_net_len),
+                               'dev', EXT_BRIDGE])
+        subprocess.check_call(['ip', 'link', 'set',
+                               EXT_BRIDGE, 'up'])

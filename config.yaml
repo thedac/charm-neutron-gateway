@@ -30,10 +30,10 @@ options:
       public access to instances/floating IP's.
   ext-gw-ip:
     type: string
-    default: 192.168.21.100
     description: |
       IP address to assign to external bridge for external network
-      access.
+      access.  Only use this when configuraing a single instance
+      quantum gateway deployment.
   ext-net-cidr:
     type: string
     default: 192.168.21.0/24
