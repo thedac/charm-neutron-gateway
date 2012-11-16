@@ -4,12 +4,14 @@ import utils
 import sys
 import quantum_utils as qutils
 import os
+import shutil
 
 PLUGIN = utils.config_get('plugin')
 
 
 def install():
     utils.configure_source()
+    shutil.copy('files/create_tenant_net.py', '/usr/bin/quantum-net-create')
     if PLUGIN in qutils.PLUGIN_PKGS.keys():
         if PLUGIN == qutils.OVS:
             # Install OVS DKMS first to ensure that the ovs module

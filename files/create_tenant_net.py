@@ -141,4 +141,3 @@ if __name__ == '__main__':
                                              {'subnet_id': subnet['id']})
             else:
                 logging.warning('Router already connected to subnet')
-
