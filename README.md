@@ -49,6 +49,9 @@ use of Quantum instead of nova-network.
 Configuration
 -------------
 
+External Network Configuration
+==============================
+
 The quantum charm supports a number of configuration options; at a minimum you
 will need to specify the external network configuration for you environment.
 These are used to configure the 'external network' in quantum which provides
@@ -72,6 +75,19 @@ Example minimal configuration:
 
 The IP addresses above are for illustrative purposes only; in a real environment
 these would be configured with actual routable public addresses.
+
+Tenant Network Configuration
+============================
+
+The quantum charm provides a helper script for creating tenant networks:
+
+  quantum-net-create -t admin -r provider-router \
+        -N 192.168.21.1 adminnet 10.5.5.0/24
+
+will create a new network for the admin tenant called 'adminnet' with a
+default gateway of 10.5.5.1, a DNS nameserver at 192.168.21.1 and a dhcp
+allocation range of 10.5.5.2 to 10.5.5.254; external network access is
+provided through the 'provider-router' (created by the charm itself).
 
 TODO
 ----
