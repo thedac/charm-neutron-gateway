@@ -88,7 +88,7 @@ if __name__ == '__main__':
         }
         network = quantum.create_network(network_msg)['network']
     else:
-        logging.error('Network %s already exists.', net_name)
+        logging.warning('Network %s already exists.', net_name)
         network = networks['networks'][0]
 
     # Create subnet
@@ -140,5 +140,5 @@ if __name__ == '__main__':
                 quantum.add_interface_router(router['id'],
                                              {'subnet_id': subnet['id']})
             else:
-                logging.info('Router already connected to subnet')
-            
+                logging.warning('Router already connected to subnet')
+
