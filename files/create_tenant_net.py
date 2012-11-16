@@ -130,9 +130,15 @@ if __name__ == '__main__':
             logging.error('Unable to locate provider router %s', opts.router)
             sys.exit(1)
         else:
-            ports = quantum.list_ports()
-            logging.info('Adding interface from %s to %s',
-                         opts.router, subnet_name)
-            router = routers['routers'][0]
-            quantum.add_interface_router(router['id'],
-                                         {'subnet_id': subnet['id']})
+            # Check to see if subnet already plugged into router
+            ports = quantum.list_ports(device_owner='network:router_interface',
+                                       network_id=network['id'])
+            if len(ports['ports']) == 0:
+                logging.info('Adding interface from %s to %s',
+                             opts.router, subnet_name)
+                router = routers['routers'][0]
+                quantum.add_interface_router(router['id'],
+                                             {'subnet_id': subnet['id']})
+            else:
+                logging.info('Router already connected to subnet')
+            
