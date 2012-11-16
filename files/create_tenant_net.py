@@ -111,15 +111,19 @@ if __name__ == '__main__':
         logging.warning('Subnet %s already exists.', subnet_name)
         subnet = subnets['subnets'][0]
 
+    # Update dns_nameservers
     if opts.dns_servers:
         msg = {
-            'dns_servers': opts.dns_servers.split(',')
+            'subnet': {
+                'dns_nameservers': opts.dns_servers.split(',')
+            }
         }
-        logging.info('Updating dns_servers information for subnet %s',
+        logging.info('Updating dns_nameservers (%s) for subnet %s',
+                     opts.dns_servers,
                      subnet_name)
         quantum.update_subnet(subnet['id'], msg)
 
-    # Plug subnet into router
+    # Plug subnet into router if provided
     if opts.router:
         routers = quantum.list_routers(name=opts.router)
         if len(routers['routers']) == 0:
