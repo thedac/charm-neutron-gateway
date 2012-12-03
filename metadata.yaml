@@ -1,5 +1,5 @@
-name: quantum
-summary: Virtual Networking for OpenStack
+name: quantum-gateway
+summary: Virtual Networking for OpenStack - Quantum Gateway
 maintainer: James Page <james.page@ubuntu.com>
 description: |
   Quantum is a virtual network service for Openstack, and a part of
@@ -10,6 +10,9 @@ description: |
   from Nova VMs). The Quantum API supports extensions to provide
   advanced network capabilities (e.g., QoS, ACLs, network monitoring,
   etc.)
+  .
+  This charm provides central Quantum networking services as part
+  of a Quantum based Openstack deployment
 provides:
   quantum-network-service:
     interface: quantum
@@ -18,5 +21,3 @@ requires:
     interface: mysql-shared
   amqp:
     interface: rabbitmq
-  identity-service:
-    interface: keystone

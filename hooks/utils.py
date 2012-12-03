@@ -62,9 +62,15 @@ CLOUD_ARCHIVE = \
 deb http://ubuntu-cloud.archive.canonical.com/ubuntu {} main
 """
 
+CLOUD_ARCHIVE_POCKETS = {
+    'folsom': 'precise-updates/folsom',
+    'folsom/updates': 'precise-updates/folsom',
+    'folsom/proposed': 'precise-proposed/folsom'
+    }
+
 
 def configure_source():
-    source = str(config_get('source'))
+    source = str(config_get('openstack-origin'))
     if not source:
         return
     if source.startswith('ppa:'):
@@ -77,18 +83,22 @@ def configure_source():
         install('ubuntu-cloud-keyring')
         pocket = source.split(':')[1]
         with open('/etc/apt/sources.list.d/cloud-archive.list', 'w') as apt:
-            apt.write(CLOUD_ARCHIVE.format(pocket))
-    if source.startswith('http:'):
-        with open('/etc/apt/sources.list.d/quantum.list', 'w') as apt:
-            apt.write("deb " + source + "\n")
-        key = config_get('key')
-        if key:
+            apt.write(CLOUD_ARCHIVE.format(CLOUD_ARCHIVE_POCKETS[pocket]))
+    if source.startswith('deb'):
+        l = len(source.split('|'))
+        if l == 2:
+            (apt_line, key) = source.split('|')
             cmd = [
                 'apt-key',
                 'adv', '--keyserver keyserver.ubuntu.com',
                 '--recv-keys', key
                 ]
             subprocess.check_call(cmd)
+        elif l == 1:
+            apt_line = source
+
+        with open('/etc/apt/sources.list.d/quantum.list', 'w') as apt:
+            apt.write(apt_line + "\n")
     cmd = [
         'apt-get',
         'update'

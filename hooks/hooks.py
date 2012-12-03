@@ -4,15 +4,13 @@ import utils
 import sys
 import quantum_utils as qutils
 import os
-import shutil
 
 PLUGIN = utils.config_get('plugin')
 
 
 def install():
     utils.configure_source()
-    shutil.copy('files/create_tenant_net.py', '/usr/bin/quantum-net-create')
-    if PLUGIN in qutils.PLUGIN_PKGS.keys():
+    if PLUGIN in qutils.GATEWAY_PKGS.keys():
         if PLUGIN == qutils.OVS:
             # Install OVS DKMS first to ensure that the ovs module
             # loaded supports GRE tunnels
@@ -24,12 +22,10 @@ def install():
 
 
 def config_changed():
-    if PLUGIN in qutils.PLUGIN_PKGS.keys():
-        render_api_paste_conf()
+    if PLUGIN in qutils.GATEWAY_PKGS.keys():
         render_quantum_conf()
         render_plugin_conf()
         render_l3_agent_conf()
-        render_novarc()
         if PLUGIN == qutils.OVS:
             qutils.add_bridge(qutils.INT_BRIDGE)
             qutils.add_bridge(qutils.EXT_BRIDGE)
@@ -41,31 +37,6 @@ def config_changed():
         utils.juju_log('ERROR',
                        'Please provide a valid plugin config')
         sys.exit(1)
-
-    configure_networking()
-
-
-def configure_networking():
-    keystone_conf = get_keystone_conf()
-    db_conf = get_db_conf()
-    if (utils.config_get('conf-ext-net') and
-        keystone_conf and
-        db_conf):
-        qutils.configure_ext_net(
-                 username=keystone_conf['service_username'],
-                 password=keystone_conf['service_password'],
-                 tenant=keystone_conf['service_tenant'],
-                 url="http://{}:{}/v2.0/".format(
-                        keystone_conf['keystone_host'],
-                        keystone_conf['auth_port']
-                        ),
-                 ext_net_name=utils.config_get('ext-net-name'),
-                 gateway_ip=utils.config_get('ext-gw-ip'),
-                 default_gateway=utils.config_get('ext-net-gateway'),
-                 cidr=utils.config_get('ext-net-cidr'),
-                 start_floating_ip=utils.config_get('pool-floating-start'),
-                 end_floating_ip=utils.config_get('pool-floating-end')
-            )
 
 
 def upgrade_charm():
@@ -83,25 +54,6 @@ def render_l3_agent_conf():
                             context
                             )
                        )
-
-
-def render_api_paste_conf():
-    context = get_keystone_conf()
-    if (context and
-        os.path.exists(qutils.QUANTUM_API_CONF)):
-        with open(qutils.QUANTUM_API_CONF, "w") as conf:
-            conf.write(utils.render_template(
-                            os.path.basename(qutils.QUANTUM_API_CONF),
-                            context
-                            )
-                       )
-
-
-def render_novarc():
-    context = get_keystone_conf()
-    if context:
-        with open('/etc/quantum/novarc', "w") as conf:
-            conf.write(utils.render_template('novarc', context))
 
 
 def render_quantum_conf():
@@ -132,31 +84,12 @@ def render_plugin_conf():
                        )
 
 
-def keystone_joined():
-    url = "http://{}:9696/".format(utils.unit_get('private-address'))
-    utils.relation_set(service=qutils.KEYSTONE_SERVICE,
-                       region=utils.config_get('region'),
-                       public_url=url,
-                       admin_url=url,
-                       internal_url=url)
-
-
-def keystone_changed():
-    render_l3_agent_conf()
-    render_api_paste_conf()
-    render_novarc()
-    utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
-    notify_agents()
-    configure_networking()
-
-
 def get_keystone_conf():
-    for relid in utils.relation_ids('identity-service'):
+    for relid in utils.relation_ids('quantum-network-service'):
         for unit in utils.relation_list(relid):
             conf = {
-                "keystone_host": utils.relation_get('private-address',
+                "keystone_host": utils.relation_get('keystone_host',
                                                     unit, relid),
-                "token": utils.relation_get('admin_token', unit, relid),
                 "service_port": utils.relation_get('service_port',
                                                    unit, relid),
                 "auth_port": utils.relation_get('auth_port', unit, relid),
@@ -181,7 +114,6 @@ def db_joined():
 def db_changed():
     render_plugin_conf()
     utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
-    configure_networking()
 
 
 def get_db_conf():
@@ -226,33 +158,20 @@ def get_rabbit_conf():
     return None
 
 
-def nm_joined():
-    keystone_conf = get_keystone_conf()
-    if keystone_conf:
-        utils.relation_set(**keystone_conf)  # IGNORE:W0142
-    utils.relation_set(plugin=PLUGIN)
-
-
-def notify_agents():
-    keystone_conf = get_keystone_conf()
-    if keystone_conf:
-        for relid in utils.relation_ids('quantum-network-service'):
-            utils.relation_set(rid=relid,  # IGNORE:W0142
-                               plugin=PLUGIN,
-                               **keystone_conf)
+def nm_changed():
+    render_l3_agent_conf()
+    utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
 
 
 utils.do_hooks({
     "install": install,
     "config-changed": config_changed,
     "upgrade-charm": upgrade_charm,
-    "identity-service-relation-joined": keystone_joined,
-    "identity-service-relation-changed": keystone_changed,
     "shared-db-relation-joined": db_joined,
     "shared-db-relation-changed": db_changed,
     "amqp-relation-joined": amqp_joined,
     "amqp-relation-changed": amqp_changed,
-    "quantum-network-service-relation-joined": nm_joined,
+    "quantum-network-service-relation-changed": nm_changed,
     })
 
 sys.exit(0)

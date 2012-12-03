@@ -18,55 +18,12 @@ options:
     default: RegionOne
     description: |
       OpenStack region that this quantum service supports.
-  conf-ext-net:
-    type: string
-    description: Configure external network for quantum using
-      network configuration below.
-  ext-net-name:
-    type: string
-    default: ext_net
-    description: |
-      Name of external network configuration to create for
-      public access to instances/floating IP's.
-  ext-gw-ip:
-    type: string
-    description: |
-      IP address to assign to external bridge for external network
-      access.  Only use this when configuraing a single instance
-      quantum gateway deployment.
-  ext-net-cidr:
-    type: string
-    default: 192.168.21.0/24
-    description: |
-      External network addressing
-  ext-net-gateway:
-    type: string
-    default: 192.168.21.1
-    description: |
-      IP of the public network gateway (i.e. external router)
-  pool-floating-start:
-    type: string
-    default: 192.168.21.130
-    description: |
-      Start of default floating IP range.
-  pool-floating-end:
-    type: string
-    default: 192.168.21.200
-    description: |
-      End of default floating IP range.
-  source:
+  openstack-origin:
     type: string
     description: |
       Optional configuration to support use of additional sources such as:
       .
         - ppa:myteam/ppa
-        - cloud:precise-proposed/folsom
-        - http://my.archive.com/ubuntu main
-      .
-      The last option should be used in conjunction with the key configuration
-      option.
-  key:
-    type: string
-    description: |
-      Key ID to import to the apt keyring to support use with arbitary source
-      configuration from outside of Launchpad archives or PPA's.
+        - cloud:precise-folsom/proposed
+        - cloud:precise-folsom
+        - deb http://my.archive.com/ubuntu main|KEYID

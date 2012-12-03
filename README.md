@@ -3,9 +3,9 @@ Overview
 
 Quantum provides flexible software defined networking (SDN) for OpenStack.
 
-This charm is designed to be used in conjunction with the 'quantum-agent'
-charm (and the rest of the OpenStack related charms in the charm store) to
-virtualized the network that Nova Compute instances plug into.
+This charm is designed to be used in conjunction with the rest of the OpenStack
+related charms in the charm store) to virtualized the network that Nova Compute
+instances plug into.
 
 Its designed as a replacement for nova-network; however it does not yet
 support all of the features as nova-network (such as multihost) so may not
@@ -14,8 +14,8 @@ be suitable for all.
 Quantum supports a rich plugin/extension framework for propriety networking
 solutions and supports (in core) Nicira NVP, NEC, Cisco and others...
 
-The charm currently only supports the fully free OpenvSwitch plugin and
-implements the 'Provider Router with Private Networks' use case.
+The Openstack charms currently only support the fully free OpenvSwitch plugin
+and implements the 'Provider Router with Private Networks' use case.
 
 See the upstream [Quantum documentation](http://docs.openstack.org/trunk/openstack-network/admin/content/use_cases_single_router.html)
 for more details.
@@ -24,70 +24,32 @@ for more details.
 Usage
 -----
 
-Assumming that you have already deployed OpenStack using Juju, Quantum can be
-added to the mix:
+In order to use Quantum with Openstack, you will need to deploy the
+nova-compute and nova-cloud-controller charms with the network-manager
+configuration set to 'Quantum':
 
-    juju deploy quantum
-    juju add-relation quantum mysql
-    juju add-relation quantum rabbitmq-server
-    juju add-relation keystone
-    juju add-relation nova-cloud-controller
+    nova-compute:
+        network-manager: Quantum
+    nova-cloud-controller:
+        network-manager: Quantum
 
-This will setup a Quantum API server and the DHCP and L3 routing agents on the
-deployed servce unit.  ATM it does not support multiple units (WIP).
+This decision must be made prior to deploying Openstack with Juju as
+Quantum is deployed baked into these charms from install onwards:
 
-To then integrate Quantum with nova-compute do:
+    juju deploy --config config.yaml nova-compute
+    juju deploy --config config.yaml nova-cloud-controller
+    juju add-relation nova-compute nova-cloud-controller
 
-    juju deploy quantum-agent
-    juju add-relation quantum-agent mysql
-    juju add-relation quantum-agent rabbitmq-server
-    juju add-relation quantum-agent nova-compute
+The Quantum Gateway can then be added to the deploying:
 
-All of the units supporting nova-compute will now be reconfigured to support
-use of Quantum instead of nova-network.
+    juju deploy quantum-gateway
+    juju add-relation quantum-gateway mysql
+    juju add-relation quantum-gateway rabbitmq-server
+    juju add-relation quantum-gateway nova-cloud-controller
 
-Configuration
--------------
+The gateway provides two key services; L3 network routing and DHCP services.
 
-External Network Configuration
-==============================
-
-The quantum charm supports a number of configuration options; at a minimum you
-will need to specify the external network configuration for you environment.
-These are used to configure the 'external network' in quantum which provides
-outbound public network access from tenant private networks and handles the
-allocation of floating IP's for inbound public network access.
-
-You will also need to provide the 'ext-port' configuration element; this should
-be the port on the server which should be used for routing external/public
-network traffic.  This does of course mean that you need a server with more than
-one network interface to deploy the quantum charm.
-
-Example minimal configuration:
-
-    quantum:
-      ext-port: eth1
-      conf-ext-net: yes
-      ext-net-cidr: 192.168.21.0/24
-      ext-net-gateway: 192.168.21.1
-      pool-floating-start: 192.168.21.130
-      pool-floating-end: 192.168.21.200
-
-The IP addresses above are for illustrative purposes only; in a real environment
-these would be configured with actual routable public addresses.
-
-Tenant Network Configuration
-============================
-
-The quantum charm provides a helper script for creating tenant networks:
-
-  quantum-net-create -t admin -r provider-router \
-        -N 192.168.21.1 adminnet 10.5.5.0/24
-
-will create a new network for the admin tenant called 'adminnet' with a
-default gateway of 10.5.5.1, a DNS nameserver at 192.168.21.1 and a dhcp
-allocation range of 10.5.5.2 to 10.5.5.254; external network access is
-provided through the 'provider-router' (created by the charm itself).
+These are both required in a fully functional Quantum Openstack deployment.
 
 TODO
 ----
@@ -96,4 +58,3 @@ TODO
  * Support VLAN in addition to GRE+OpenFlow for L2 separation.
  * High Avaliability.
  * Support for propriety plugins for Quantum.
-
