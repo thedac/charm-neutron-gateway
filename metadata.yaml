@@ -21,3 +21,6 @@ requires:
     interface: mysql-shared
   amqp:
     interface: rabbitmq
+  ha:
+    interface: hacluster
+    scope: container
