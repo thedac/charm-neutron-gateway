@@ -28,15 +28,13 @@ In order to use Quantum with Openstack, you will need to deploy the
 nova-compute and nova-cloud-controller charms with the network-manager
 configuration set to 'Quantum':
 
-    nova-compute:
-        network-manager: Quantum
     nova-cloud-controller:
         network-manager: Quantum
 
 This decision must be made prior to deploying Openstack with Juju as
 Quantum is deployed baked into these charms from install onwards:
 
-    juju deploy --config config.yaml nova-compute
+    juju deploy nova-compute
     juju deploy --config config.yaml nova-cloud-controller
     juju add-relation nova-compute nova-cloud-controller
 

@@ -17,10 +17,12 @@ def do_hooks(hooks):
     hook = os.path.basename(sys.argv[0])
 
     try:
-        hooks[hook]()
+        hook_func = hooks[hook]
     except KeyError:
         juju_log('INFO',
                  "This charm doesn't know how to handle '{}'.".format(hook))
+    else:
+        hook_func()
 
 
 def install(*pkgs):
@@ -43,11 +45,9 @@ except ImportError:
 
 try:
     import dns.resolver
-    import dns.ipv4
 except ImportError:
     install('python-dnspython')
     import dns.resolver
-    import dns.ipv4
 
 
 def render_template(template_name, context, template_dir=TEMPLATES_DIR):
@@ -65,7 +65,10 @@ deb http://ubuntu-cloud.archive.canonical.com/ubuntu {} main
 CLOUD_ARCHIVE_POCKETS = {
     'folsom': 'precise-updates/folsom',
     'folsom/updates': 'precise-updates/folsom',
-    'folsom/proposed': 'precise-proposed/folsom'
+    'folsom/proposed': 'precise-proposed/folsom',
+    'grizzly': 'precise-updates/grizzly',
+    'grizzly/updates': 'precise-updates/grizzly',
+    'grizzly/proposed': 'precise-proposed/grizzly'
     }
 
 
@@ -206,9 +209,9 @@ def get_unit_hostname():
 def get_host_ip(hostname=unit_get('private-address')):
     try:
         # Test to see if already an IPv4 address
-        dns.ipv4.inet_aton(hostname)
+        socket.inet_aton(hostname)
         return hostname
-    except dns.exception.SyntaxError:
+    except socket.error:
         pass
     try:
         answers = dns.resolver.query(hostname, 'A')
