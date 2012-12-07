@@ -14,7 +14,6 @@ options:
       traffic to the external public network.
   openstack-origin:
     type: string
-    default: cloud:precise-folsom
     description: |
       Optional configuration to support use of additional sources such as:
       .
