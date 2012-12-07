@@ -63,12 +63,12 @@ deb http://ubuntu-cloud.archive.canonical.com/ubuntu {} main
 """
 
 CLOUD_ARCHIVE_POCKETS = {
-    'folsom': 'precise-updates/folsom',
-    'folsom/updates': 'precise-updates/folsom',
-    'folsom/proposed': 'precise-proposed/folsom',
-    'grizzly': 'precise-updates/grizzly',
-    'grizzly/updates': 'precise-updates/grizzly',
-    'grizzly/proposed': 'precise-proposed/grizzly'
+    'precise-folsom': 'precise-updates/folsom',
+    'precise-folsom/updates': 'precise-updates/folsom',
+    'precise-folsom/proposed': 'precise-proposed/folsom',
+    'precise-grizzly': 'precise-updates/grizzly',
+    'precise-grizzly/updates': 'precise-updates/grizzly',
+    'precise-grizzly/proposed': 'precise-proposed/grizzly'
     }
 
 
