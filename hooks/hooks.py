@@ -181,7 +181,9 @@ def ha_relation_joined():
     # set relation values
     utils.relation_set(resources=resources,
                        resource_params=resource_params,
-                       init_services=init_services)
+                       init_services=init_services,
+                       corosync_bindiface=utils.config_get('ha-bindiface'),
+                       corosync_mcastport=utils.config_get('ha-mcastport'))
 
 
 utils.do_hooks({
