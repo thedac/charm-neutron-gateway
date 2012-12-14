@@ -17,10 +17,12 @@ def do_hooks(hooks):
     hook = os.path.basename(sys.argv[0])
 
     try:
-        hooks[hook]()
+        hook_func = hooks[hook]
     except KeyError:
         juju_log('INFO',
                  "This charm doesn't know how to handle '{}'.".format(hook))
+    else:
+        hook_func()
 
 
 def install(*pkgs):
@@ -43,11 +45,9 @@ except ImportError:
 
 try:
     import dns.resolver
-    import dns.ipv4
 except ImportError:
     install('python-dnspython')
     import dns.resolver
-    import dns.ipv4
 
 
 def render_template(template_name, context, template_dir=TEMPLATES_DIR):
@@ -63,9 +63,12 @@ deb http://ubuntu-cloud.archive.canonical.com/ubuntu {} main
 """
 
 CLOUD_ARCHIVE_POCKETS = {
-    'folsom': 'precise-updates/folsom',
-    'folsom/updates': 'precise-updates/folsom',
-    'folsom/proposed': 'precise-proposed/folsom'
+    'precise-folsom': 'precise-updates/folsom',
+    'precise-folsom/updates': 'precise-updates/folsom',
+    'precise-folsom/proposed': 'precise-proposed/folsom',
+    'precise-grizzly': 'precise-updates/grizzly',
+    'precise-grizzly/updates': 'precise-updates/grizzly',
+    'precise-grizzly/proposed': 'precise-proposed/grizzly'
     }
 
 
@@ -206,9 +209,9 @@ def get_unit_hostname():
 def get_host_ip(hostname=unit_get('private-address')):
     try:
         # Test to see if already an IPv4 address
-        dns.ipv4.inet_aton(hostname)
+        socket.inet_aton(hostname)
         return hostname
-    except dns.exception.SyntaxError:
+    except socket.error:
         pass
     try:
         answers = dns.resolver.query(hostname, 'A')
@@ -219,16 +222,41 @@ def get_host_ip(hostname=unit_get('private-address')):
     return None
 
 
+CLUSTER_RESOURCES = {
+    'quantum-dhcp-agent': 'res_quantum_dhcp_agent',
+    'quantum-l3-agent': 'res_quantum_l3_agent'
+    }
+
+HAMARKER = '/var/lib/juju/haconfigured'
+
+
+def _service_ctl(service, action):
+    if (os.path.exists(HAMARKER) and
+        os.path.exists(os.path.join('/etc/init/',
+                                   '{}.override'.format(service))) and
+        service in CLUSTER_RESOURCES):
+        hostname = str(subprocess.check_output(['hostname'])).strip()
+        service_status = \
+            subprocess.check_output(['crm', 'resource', 'show',
+                                     CLUSTER_RESOURCES[service]])
+        # Only restart if we are the node that owns the service
+        if hostname in service_status:
+            subprocess.check_call(['crm', 'resource', action,
+                                  CLUSTER_RESOURCES[service]])
+    else:
+        subprocess.check_call(['service', service, action])
+
+
 def restart(*services):
     for service in services:
-        subprocess.check_call(['service', service, 'restart'])
+        _service_ctl(service, 'restart')
 
 
 def stop(*services):
     for service in services:
-        subprocess.check_call(['service', service, 'stop'])
+        _service_ctl(service, 'stop')
 
 
 def start(*services):
     for service in services:
-        subprocess.check_call(['service', service, 'start'])
+        _service_ctl(service, 'start')

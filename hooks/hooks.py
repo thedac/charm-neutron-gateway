@@ -167,14 +167,18 @@ def ha_relation_joined():
     # init services that will be clusterized. Used to disable init scripts
     # Used when resources have upstart jobs that are needed to be disabled.
     # resource_name:init_script_name
-    init_services = {'res_quantum_dhcp_agent':'quantum-dhcp-agent',
-                     'res_quantum_l3_agent':'quantum-l3-agent'}
+    init_services = {'res_quantum_dhcp_agent': 'quantum-dhcp-agent',
+                     'res_quantum_l3_agent': 'quantum-l3-agent'}
 
     # Obtain resources
-    resources = {'res_quantum_dhcp_agent':'ocf:openstack:quantum-agent-dhcp',
-                 'res_quantum_l3_agent':'ocf:openstack:quantum-agent-l3'}
-    resource_params = {'res_quantum_dhcp_agent':'params config="/etc/quantum/quantum.conf" op monitor interval="5s" timeout="5s"',
-                       'res_quantum_l3_agent':'params config="/etc/quantum/quantum.conf" op monitor interval="5s" timeout="5s"'}
+    resources = {'res_quantum_dhcp_agent': 'ocf:openstack:quantum-agent-dhcp',
+                 'res_quantum_l3_agent': 'ocf:openstack:quantum-agent-l3'}
+    resource_params = {'res_quantum_dhcp_agent':
+                            'params config="/etc/quantum/quantum.conf"'
+                            ' op monitor interval="5s" timeout="5s"',
+                       'res_quantum_l3_agent':
+                            'params config="/etc/quantum/quantum.conf"'
+                            ' op monitor interval="5s" timeout="5s"'}
 
     # TODO: colocate each service in different machine
 

@@ -3,9 +3,8 @@ options:
     default: ovs
     type: string
     description: |
-      Network configuration plugin to use to manage
-      the quantum network across quantum and nova-compute
-      nodes. Supported values include:
+      Network configuration plugin to use for quantum.
+      Supported values include:
       .
         ovs - OpenVSwitch
   ext-port:
@@ -13,13 +12,9 @@ options:
     description: |
       External port to use for routing of instance
       traffic to the external public network.
-  region:
-    type: string
-    default: RegionOne
-    description: |
-      OpenStack region that this quantum service supports.
   openstack-origin:
     type: string
+    default: cloud:precise-folsom
     description: |
       Optional configuration to support use of additional sources such as:
       .
