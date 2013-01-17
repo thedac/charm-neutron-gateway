@@ -153,6 +153,9 @@ def get_rabbit_conf():
                 "rabbit_password": utils.relation_get('password',
                                                       unit, relid)
                 }
+            clustered = utils.relation_get('clustered', unit, relid)
+            if clustered:
+                conf['rabbit_host'] = utils.relation_get('vip', unit, relid)
             if None not in conf.itervalues():
                 return conf
     return None
