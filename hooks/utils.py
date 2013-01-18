@@ -11,6 +11,7 @@ import os
 import subprocess
 import socket
 import sys
+import apt_pkg as apt
 
 
 def do_hooks(hooks):
@@ -260,3 +261,13 @@ def stop(*services):
 def start(*services):
     for service in services:
         _service_ctl(service, 'start')
+
+
+def get_os_version(package=None):
+    apt.init()
+    cache = apt.Cache()
+    pkg = cache[package or 'quantum-common']
+    if pkg.current_ver:
+        return apt.upstream_version(pkg.current_ver.ver_str)
+    else:
+        return None
