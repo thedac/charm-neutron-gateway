@@ -1,5 +1,8 @@
 import subprocess
+import os
+import uuid
 from utils import juju_log as log
+from utils import get_os_version
 
 
 OVS = "ovs"
@@ -28,28 +31,51 @@ GATEWAY_PKGS = {
         "quantum-plugin-openvswitch-agent",
         "quantum-l3-agent",
         "quantum-dhcp-agent",
-        'python-mysqldb'
+        'python-mysqldb',
+        "nova-api-metadata"
         ],
     NVP: [
-        "quantum-plugin-nicira"
+        "quantum-plugin-nicira",
+        "quantum-l3-agent",
+        "quantum-dhcp-agent",
+        'python-mysqldb',
+        "nova-api-metadata"
         ]
     }
 
+# TODO: conditionally add quantum-metadata-agent if
+# running 2013.1 onwards. OR add some overrides
+# start on starting quantum-l3-agent
+# stop on stopping quantum-l3-agent
 GATEWAY_AGENTS = {
     OVS: [
         "quantum-plugin-openvswitch-agent",
         "quantum-l3-agent",
-        "quantum-dhcp-agent"
+        "quantum-dhcp-agent",
+        "nova-api-metadata"
+        ],
+    NVP: [
+        "quantum-l3-agent",
+        "quantum-dhcp-agent",
+        "nova-api-metadata"
         ]
     }
+
+if get_os_version('quantum-common') >= "2013.1":
+    for plugin in GATEWAY_AGENTS:
+        GATEWAY_AGENTS[plugin].append("quantum-metadata-agent")
 
 DB_USER = "quantum"
 QUANTUM_DB = "quantum"
 KEYSTONE_SERVICE = "quantum"
+NOVA_DB_USER = "nova"
+NOVA_DB = "nova"
 
 QUANTUM_CONF = "/etc/quantum/quantum.conf"
 L3_AGENT_CONF = "/etc/quantum/l3_agent.ini"
 DHCP_AGENT_CONF = "/etc/quantum/dhcp_agent.ini"
+METADATA_AGENT_CONF = "/etc/quantum/metadata_agent.ini"
+NOVA_CONF = "/etc/nova/nova.conf"
 
 RABBIT_USER = "nova"
 RABBIT_VHOST = "nova"
@@ -90,3 +116,18 @@ def del_bridge_port(name, port):
             'Deleting port {} from bridge {}'.format(port, name))
         subprocess.check_call(["ovs-vsctl", "del-port", name, port])
         subprocess.check_call(["ip", "link", "set", port, "down"])
+
+
+SHARED_SECRET = "/etc/quantum/secret.txt"
+
+
+def get_shared_secret():
+    secret = None
+    if not os.path.exists(SHARED_SECRET):
+        secret = str(uuid.uuid4())
+        with open(SHARED_SECRET, 'w') as secret_file:
+            secret_file.write(secret)
+    else:
+        with open(SHARED_SECRET, 'r') as secret_file:
+            secret = secret_file.read().strip()
+    return secret
