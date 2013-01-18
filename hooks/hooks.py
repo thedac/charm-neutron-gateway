@@ -102,8 +102,12 @@ def render_plugin_conf():
 
 def render_metadata_api_conf():
     context = get_nova_db_conf()
-    if (context and
+    r_context = get_rabbit_conf()
+    q_context = get_keystone_conf()
+    if (context and r_context and q_context and
         os.path.exists(qutils.NOVA_CONF)):
+        context.update(r_context)
+        context.update(q_context)
         context['shared_secret'] = qutils.get_shared_secret()
         with open(qutils.NOVA_CONF, "w") as conf:
             conf.write(utils.render_template(
@@ -127,7 +131,11 @@ def get_keystone_conf():
                 "service_password": utils.relation_get('service_password',
                                                        unit, relid),
                 "service_tenant": utils.relation_get('service_tenant',
-                                                     unit, relid)
+                                                     unit, relid),
+                "quantum_host": utils.relation_get('quantum_host',
+                                                   unit, relid),
+                "quantum_port": utils.relation_get('quantum_port',
+                                                   unit, relid)
                 }
             if None not in conf.itervalues():
                 return conf
@@ -188,6 +196,7 @@ def amqp_joined():
 
 def amqp_changed():
     render_quantum_conf()
+    render_metadata_api_conf()
     utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
 
 
@@ -213,6 +222,7 @@ def get_rabbit_conf():
 def nm_changed():
     render_l3_agent_conf()
     render_metadata_agent_conf()
+    render_metadata_api_conf()
     utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
 
 
