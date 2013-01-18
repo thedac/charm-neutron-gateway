@@ -26,6 +26,8 @@ def config_changed():
         render_quantum_conf()
         render_plugin_conf()
         render_l3_agent_conf()
+        render_metadata_agent_conf()
+        render_metadata_api_conf()
         if PLUGIN == qutils.OVS:
             qutils.add_bridge(qutils.INT_BRIDGE)
             qutils.add_bridge(qutils.EXT_BRIDGE)
