@@ -135,7 +135,9 @@ def get_keystone_conf():
                 "quantum_host": utils.relation_get('quantum_host',
                                                    unit, relid),
                 "quantum_port": utils.relation_get('quantum_port',
-                                                   unit, relid)
+                                                   unit, relid),
+                "region": utils.relation_get('region',
+                                             unit, relid)
                 }
             if None not in conf.itervalues():
                 return conf
