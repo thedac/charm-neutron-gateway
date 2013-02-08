@@ -34,11 +34,7 @@ def config_changed():
             ext_port = utils.config_get('ext-port')
             if ext_port:
                 qutils.add_bridge_port(qutils.EXT_BRIDGE, ext_port)
-        if utils.eligible_leader(RESOURCE_GROUP):
-            utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
-        else:
-            utils.stop(*qutils.GATEWAY_AGENTS[PLUGIN])
-            qutils.flush_local_configuration()
+        restart_agents()
     else:
         utils.juju_log('ERROR',
                        'Please provide a valid plugin config')
@@ -160,11 +156,7 @@ def db_joined():
 def db_changed():
     render_plugin_conf()
     render_metadata_api_conf()
-    if utils.eligible_leader(RESOURCE_GROUP):
-        utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
-    else:
-        utils.stop(*qutils.GATEWAY_AGENTS[PLUGIN])
-        qutils.flush_local_configuration()
+    restart_agents()
 
 
 def get_quantum_db_conf():
@@ -207,11 +199,7 @@ def amqp_joined():
 def amqp_changed():
     render_quantum_conf()
     render_metadata_api_conf()
-    if utils.eligible_leader(RESOURCE_GROUP):
-        utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
-    else:
-        utils.stop(*qutils.GATEWAY_AGENTS[PLUGIN])
-        qutils.flush_local_configuration()
+    restart_agents()
 
 
 def get_rabbit_conf():
@@ -237,10 +225,17 @@ def nm_changed():
     render_l3_agent_conf()
     render_metadata_agent_conf()
     render_metadata_api_conf()
+    restart_agents()
+
+
+def restart_agents():
     if utils.eligible_leader(RESOURCE_GROUP):
         utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
     else:
-        utils.stop(*qutils.GATEWAY_AGENTS[PLUGIN])
+        # Stop any clustered agents and flush local config
+        # from network namespaces, ovs ports and dnsmasq instances
+        utils.stop(*qutils.CLUSTERED_AGENTS[PLUGIN])
+        utils.restart(*qutils.STANDALONE_AGENTS[PLUGIN])
         qutils.flush_local_configuration()
 
 
@@ -276,7 +271,7 @@ def ha_relation_joined():
 
 def cluster_changed():
     if not utils.eligible_leader(RESOURCE_GROUP):
-        utils.stop(*qutils.GATEWAY_AGENTS[PLUGIN])
+        utils.stop(*qutils.CLUSTERED_AGENTS[PLUGIN])
         qutils.flush_local_configuration()
 
 

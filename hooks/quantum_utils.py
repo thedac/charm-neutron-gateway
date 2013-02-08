@@ -61,6 +61,27 @@ GATEWAY_AGENTS = {
         ]
     }
 
+CLUSTERED_AGENTS = {
+    OVS: [
+        "quantum-l3-agent",
+        "quantum-dhcp-agent",
+        ],
+    NVP: [
+        "quantum-l3-agent",
+        "quantum-dhcp-agent",
+        ]
+    }
+
+STANDALONE_AGENTS = {
+    OVS: [
+        "quantum-plugin-openvswitch-agent",
+        "nova-api-metadata"
+        ],
+    NVP: [
+        "nova-api-metadata"
+        ]
+    }
+
 if get_os_version('quantum-common') >= "2013.1":
     for plugin in GATEWAY_AGENTS:
         GATEWAY_AGENTS[plugin].append("quantum-metadata-agent")
