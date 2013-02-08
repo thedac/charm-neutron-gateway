@@ -245,7 +245,7 @@ def _service_ctl(service, action):
             subprocess.check_call(['crm', 'resource', action,
                                   CLUSTER_RESOURCES[service]])
     else:
-        subprocess.check_call(['service', service, action])
+        subprocess.call(['service', service, action])
 
 
 def restart(*services):
