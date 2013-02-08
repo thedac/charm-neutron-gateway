@@ -131,3 +131,12 @@ def get_shared_secret():
         with open(SHARED_SECRET, 'r') as secret_file:
             secret = secret_file.read().strip()
     return secret
+
+
+def flush_local_configuration():
+    if os.path.exists('/usr/bin/quantum-netns-cleanup'):
+        cmd = [
+            "quantum-netns-cleanup",
+            "--force"
+            ]
+        subprocess.check_call(cmd)

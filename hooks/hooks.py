@@ -34,7 +34,11 @@ def config_changed():
             ext_port = utils.config_get('ext-port')
             if ext_port:
                 qutils.add_bridge_port(qutils.EXT_BRIDGE, ext_port)
-        utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
+        if utils.eligible_leader(RESOURCE_GROUP):
+            utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
+        else:
+            utils.stop(*qutils.GATEWAY_AGENTS[PLUGIN])
+            qutils.flush_local_configuration()
     else:
         utils.juju_log('ERROR',
                        'Please provide a valid plugin config')
@@ -156,7 +160,11 @@ def db_joined():
 def db_changed():
     render_plugin_conf()
     render_metadata_api_conf()
-    utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
+    if utils.eligible_leader(RESOURCE_GROUP):
+        utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
+    else:
+        utils.stop(*qutils.GATEWAY_AGENTS[PLUGIN])
+        qutils.flush_local_configuration()
 
 
 def get_quantum_db_conf():
@@ -199,7 +207,11 @@ def amqp_joined():
 def amqp_changed():
     render_quantum_conf()
     render_metadata_api_conf()
-    utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
+    if utils.eligible_leader(RESOURCE_GROUP):
+        utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
+    else:
+        utils.stop(*qutils.GATEWAY_AGENTS[PLUGIN])
+        qutils.flush_local_configuration()
 
 
 def get_rabbit_conf():
@@ -225,7 +237,14 @@ def nm_changed():
     render_l3_agent_conf()
     render_metadata_agent_conf()
     render_metadata_api_conf()
-    utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
+    if utils.eligible_leader(RESOURCE_GROUP):
+        utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
+    else:
+        utils.stop(*qutils.GATEWAY_AGENTS[PLUGIN])
+        qutils.flush_local_configuration()
+
+
+RESOURCE_GROUP = 'grp_quantum_services'
 
 
 def ha_relation_joined():
@@ -244,15 +263,21 @@ def ha_relation_joined():
                        'res_quantum_l3_agent':
                             'params config="/etc/quantum/quantum.conf"'
                             ' op monitor interval="5s" timeout="5s"'}
-
-    # TODO: colocate each service in different machine
-
+    groups = {RESOURCE_GROUP:
+                'res_quantum_dhcp_agent res_quantum_l3_agent'}
     # set relation values
     utils.relation_set(resources=resources,
                        resource_params=resource_params,
                        init_services=init_services,
+                       groups=groups,
                        corosync_bindiface=utils.config_get('ha-bindiface'),
                        corosync_mcastport=utils.config_get('ha-mcastport'))
+
+
+def cluster_changed():
+    if not utils.eligible_leader(RESOURCE_GROUP):
+        utils.stop(*qutils.GATEWAY_AGENTS[PLUGIN])
+        qutils.flush_local_configuration()
 
 
 utils.do_hooks({

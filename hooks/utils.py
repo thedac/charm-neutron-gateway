@@ -271,3 +271,57 @@ def get_os_version(package=None):
         return apt.upstream_version(pkg.current_ver.ver_str)
     else:
         return None
+
+
+def is_clustered():
+    for r_id in (relation_ids('ha') or []):
+        for unit in (relation_list(r_id) or []):
+            clustered = relation_get('clustered',
+                                     unit=unit,
+                                     rid=r_id)
+            if clustered:
+                return True
+    return False
+
+
+def is_leader(resource):
+    if os.path.exists('/usr/sbin/crm'):
+        try:
+            status = subprocess.check_output(['crm', 'resource',
+                                              'show', resource])
+            hostname = get_unit_hostname()
+            if hostname in status:
+                return True
+        except subprocess.CalledProcessError:
+            pass
+    return False
+
+
+def peer_units():
+    peers = []
+    for r_id in (relation_ids('cluster') or []):
+        for unit in (relation_list(r_id) or []):
+            peers.append(unit)
+    return peers
+
+
+def oldest_peer(peers):
+    local_unit_no = os.getenv('JUJU_UNIT_NAME').split('/')[1]
+    for peer in peers:
+        remote_unit_no = peer.split('/')[1]
+        if remote_unit_no < local_unit_no:
+            return False
+    return True
+
+
+def eligible_leader(resource):
+    if is_clustered():
+        if not is_leader(resource):
+            juju_log('INFO', 'Deferring action to CRM leader.')
+            return False
+    else:
+        peers = peer_units()
+        if peers and not oldest_peer(peers):
+            juju_log('INFO', 'Deferring action to oldest service unit.')
+            return False
+    return True
