@@ -284,7 +284,8 @@ utils.do_hooks({
     "amqp-relation-joined": amqp_joined,
     "amqp-relation-changed": amqp_changed,
     "quantum-network-service-relation-changed": nm_changed,
-    "ha-relation-joined": ha_relation_joined
+    "ha-relation-joined": ha_relation_joined,
+    "cluster-relation-changed": cluster_changed,
     })
 
 sys.exit(0)
