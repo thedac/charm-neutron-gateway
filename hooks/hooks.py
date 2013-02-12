@@ -254,10 +254,10 @@ def ha_relation_joined():
                  'res_quantum_l3_agent': 'ocf:openstack:quantum-agent-l3'}
     resource_params = {'res_quantum_dhcp_agent':
                             'params config="/etc/quantum/quantum.conf"'
-                            ' op monitor interval="5s" timeout="5s"',
+                            ' op monitor interval="10s"',
                        'res_quantum_l3_agent':
                             'params config="/etc/quantum/quantum.conf"'
-                            ' op monitor interval="5s" timeout="5s"'}
+                            ' op monitor interval="10s"'}
     groups = {RESOURCE_GROUP:
                 'res_quantum_dhcp_agent res_quantum_l3_agent'}
     # set relation values
