@@ -267,7 +267,7 @@ def ha_relation_joined():
                        'res_quantum_l3_agent':
                             'op monitor interval="5s"',
                        'res_quantum_cleanup':
-                            'op monitor interval="5s"'}
+                            'op monitor enabled="false"'}
     groups = {
         RESOURCE_GROUP:
             'res_quantum_dhcp_agent res_quantum_l3_agent res_quantum_cleanup'
