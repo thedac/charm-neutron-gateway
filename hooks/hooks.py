@@ -4,12 +4,20 @@ import utils
 import sys
 import quantum_utils as qutils
 import os
+import glob
+import shutil
 
 PLUGIN = utils.config_get('plugin')
 
 
+def install_upstart_scripts():
+    for x in glob.glob('files/*.conf'):
+        shutil.copy(x, '/etc/init/')
+
+
 def install():
     utils.configure_source()
+    install_upstart_scripts()
     if PLUGIN in qutils.GATEWAY_PKGS.keys():
         if PLUGIN == qutils.OVS:
             # Install OVS DKMS first to ensure that the ovs module
@@ -247,17 +255,23 @@ def ha_relation_joined():
     # Used when resources have upstart jobs that are needed to be disabled.
     # resource_name:init_script_name
     init_services = {'res_quantum_dhcp_agent': 'quantum-dhcp-agent',
-                     'res_quantum_l3_agent': 'quantum-l3-agent'}
+                     'res_quantum_l3_agent': 'quantum-l3-agent',
+                     'res_quantum_cleanup': 'quantum-cleanup'}
 
     # Obtain resources
     resources = {'res_quantum_dhcp_agent': 'upstart:quantum-dhcp-agent',
-                 'res_quantum_l3_agent': 'upstart:quantum-l3-agent'}
+                 'res_quantum_l3_agent': 'upstart:quantum-l3-agent',
+                 'res_quantum_cleanup': 'upstart:quantum-cleanup'}
     resource_params = {'res_quantum_dhcp_agent':
                             'op monitor interval="5s"',
                        'res_quantum_l3_agent':
+                            'op monitor interval="5s"',
+                       'res_quantum_cleanup':
                             'op monitor interval="5s"'}
-    groups = {RESOURCE_GROUP:
-                'res_quantum_dhcp_agent res_quantum_l3_agent'}
+    groups = {
+        RESOURCE_GROUP:
+            'res_quantum_dhcp_agent res_quantum_l3_agent res_quantum_cleanup'
+        }
     # set relation values
     utils.relation_set(resources=resources,
                        resource_params=resource_params,
