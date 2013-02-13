@@ -4,20 +4,12 @@ import utils
 import sys
 import quantum_utils as qutils
 import os
-import glob
-import shutil
 
 PLUGIN = utils.config_get('plugin')
 
 
-def install_upstart_scripts():
-    for x in glob.glob('files/*.conf'):
-        shutil.copy(x, '/etc/init/')
-
-
 def install():
     utils.configure_source()
-    install_upstart_scripts()
     if PLUGIN in qutils.GATEWAY_PKGS.keys():
         if PLUGIN == qutils.OVS:
             # Install OVS DKMS first to ensure that the ovs module
@@ -255,22 +247,20 @@ def ha_relation_joined():
     # Used when resources have upstart jobs that are needed to be disabled.
     # resource_name:init_script_name
     init_services = {'res_quantum_dhcp_agent': 'quantum-dhcp-agent',
-                     'res_quantum_l3_agent': 'quantum-l3-agent',
-                     'res_quantum_cleanup': 'quantum-cleanup'}
+                     'res_quantum_l3_agent': 'quantum-l3-agent'}
 
     # Obtain resources
-    resources = {'res_quantum_dhcp_agent': 'upstart:quantum-dhcp-agent',
-                 'res_quantum_l3_agent': 'upstart:quantum-l3-agent',
-                 'res_quantum_cleanup': 'upstart:quantum-cleanup'}
+    resources = {'res_quantum_dhcp_agent': 'ocf:openstack:quantum-agent-dhcp',
+                 'res_quantum_l3_agent': 'ocf:openstack:quantum-agent-l3'}
+    # TODO: monitors are currently disabled as this creates issues
+    #       when forming the cluster.
     resource_params = {'res_quantum_dhcp_agent':
-                            'op monitor interval="5s"',
+                            'op monitor interval="5s" enabled="false"',
                        'res_quantum_l3_agent':
-                            'op monitor interval="5s"',
-                       'res_quantum_cleanup':
                             'op monitor interval="5s" enabled="false"'}
     groups = {
         RESOURCE_GROUP:
-            'res_quantum_dhcp_agent res_quantum_l3_agent res_quantum_cleanup'
+            'res_quantum_dhcp_agent res_quantum_l3_agent'
         }
     # set relation values
     utils.relation_set(resources=resources,
