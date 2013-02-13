@@ -250,14 +250,17 @@ def ha_relation_joined():
                      'res_quantum_l3_agent': 'quantum-l3-agent'}
 
     # Obtain resources
-    resources = {'res_quantum_dhcp_agent': 'ocf:openstack:quantum-agent-dhcp',
-                 'res_quantum_l3_agent': 'ocf:openstack:quantum-agent-l3'}
+    # TODO: Just use upstart for the time being
+    #resources = {'res_quantum_dhcp_agent': 'ocf:openstack:quantum-agent-dhcp',
+    #             'res_quantum_l3_agent': 'ocf:openstack:quantum-agent-l3'}
+    resources = {'res_quantum_dhcp_agent': 'upstart:quantum-dhcp-agent',
+                 'res_quantum_l3_agent': 'upstart:quantum-l3-agent'}
     # TODO: monitors are currently disabled as this creates issues
     #       when forming the cluster.
     resource_params = {'res_quantum_dhcp_agent':
-                            'op monitor interval="5s" enabled="false"',
+                            'op monitor interval="5s"',
                        'res_quantum_l3_agent':
-                            'op monitor interval="5s" enabled="false"'}
+                            'op monitor interval="5s"'}
     groups = {
         RESOURCE_GROUP:
             'res_quantum_dhcp_agent res_quantum_l3_agent'
