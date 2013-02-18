@@ -158,6 +158,10 @@ def flush_local_configuration():
     if os.path.exists('/usr/bin/quantum-netns-cleanup'):
         cmd = [
             "quantum-netns-cleanup",
-            "--force"
+            "--config-file=/etc/quantum/quantum.conf"
             ]
-        subprocess.check_call(cmd)
+        for agent_conf in ['l3_agent.ini', 'dhcp_agent.ini']:
+            agent_cmd = list(cmd)
+            agent_cmd.append('--config-file=/etc/quantum/{}'\
+                                .format(agent_conf))
+            subprocess.call(agent_cmd)
