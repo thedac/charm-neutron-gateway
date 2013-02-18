@@ -163,7 +163,7 @@ def get_quantum_db_conf():
     for relid in utils.relation_ids('shared-db'):
         for unit in utils.relation_list(relid):
             conf = {
-                "host": utils.relation_get('private-address',
+                "host": utils.relation_get('db_host',
                                            unit, relid),
                 "user": qutils.DB_USER,
                 "password": utils.relation_get('quantum_password',
@@ -179,7 +179,7 @@ def get_nova_db_conf():
     for relid in utils.relation_ids('shared-db'):
         for unit in utils.relation_list(relid):
             conf = {
-                "host": utils.relation_get('private-address',
+                "host": utils.relation_get('db_host',
                                            unit, relid),
                 "user": qutils.NOVA_DB_USER,
                 "password": utils.relation_get('nova_password',
