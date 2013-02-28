@@ -39,7 +39,8 @@ GATEWAY_PKGS = {
         "quantum-l3-agent",
         "quantum-dhcp-agent",
         'python-mysqldb',
-        "nova-api-metadata"
+        "nova-api-metadata",
+        "openvswitch-switch"
         ]
     }
 
