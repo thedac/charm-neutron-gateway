@@ -142,7 +142,7 @@ def del_bridge_port(name, port):
 
 def set_manager(manager):
     subprocess.check_call(["ovs-vsctl", "set-manager",
-                           "ssl:%s".format(manager)])
+                           "ssl:{}".format(manager)])
 
 
 SHARED_SECRET = "/etc/quantum/secret.txt"
