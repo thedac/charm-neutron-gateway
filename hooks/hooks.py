@@ -24,7 +24,7 @@ def install():
 def config_changed():
     if PLUGIN in qutils.GATEWAY_PKGS.keys():
         render_quantum_conf()
-        render_plugin_conf()
+        #render_plugin_conf()
         render_l3_agent_conf()
         render_metadata_agent_conf()
         render_metadata_api_conf()
@@ -154,7 +154,7 @@ def db_joined():
 
 
 def db_changed():
-    render_plugin_conf()
+    #render_plugin_conf()
     render_metadata_api_conf()
     restart_agents()
 
