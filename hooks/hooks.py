@@ -11,7 +11,7 @@ PLUGIN = utils.config_get('plugin')
 def install():
     utils.configure_source()
     if PLUGIN in qutils.GATEWAY_PKGS.keys():
-        if PLUGIN == qutils.OVS:
+        if PLUGIN in [qutils.OVS, qutils.NVP]:
             # Install OVS DKMS first to ensure that the ovs module
             # loaded supports GRE tunnels
             utils.install('openvswitch-datapath-dkms')
@@ -28,7 +28,7 @@ def config_changed():
         render_l3_agent_conf()
         render_metadata_agent_conf()
         render_metadata_api_conf()
-        if PLUGIN == qutils.OVS:
+        if PLUGIN in [qutils.OVS, qutils.NVP]:
             qutils.add_bridge(qutils.INT_BRIDGE)
             qutils.add_bridge(qutils.EXT_BRIDGE)
             ext_port = utils.config_get('ext-port')
@@ -225,6 +225,9 @@ def nm_changed():
     render_l3_agent_conf()
     render_metadata_agent_conf()
     render_metadata_api_conf()
+    if (PLUGIN == qutils.NVP and
+        utils.relation_get('nvp-manager')):
+        qutils.set_manager(utils.relation_get('nvp-manager'))
     restart_agents()
 
 
