@@ -86,8 +86,8 @@ def configure_source():
     if source.startswith('cloud:'):
         install('ubuntu-cloud-keyring')
         pocket = source.split(':')[1]
-        with open('/etc/apt/sources.list.d/cloud-archive.list', 'w') as apt:
-            apt.write(CLOUD_ARCHIVE.format(CLOUD_ARCHIVE_POCKETS[pocket]))
+        with open('/etc/apt/sources.list.d/cloud-archive.list', 'w') as sfile:
+            sfile.write(CLOUD_ARCHIVE.format(CLOUD_ARCHIVE_POCKETS[pocket]))
     if source.startswith('deb'):
         l = len(source.split('|'))
         if l == 2:
@@ -101,8 +101,8 @@ def configure_source():
         elif l == 1:
             apt_line = source
 
-        with open('/etc/apt/sources.list.d/quantum.list', 'w') as apt:
-            apt.write(apt_line + "\n")
+        with open('/etc/apt/sources.list.d/quantum.list', 'w') as sfile:
+            sfile.write(apt_line + "\n")
     cmd = [
         'apt-get',
         'update'
@@ -214,38 +214,15 @@ def get_host_ip(hostname=unit_get('private-address')):
         return hostname
     except socket.error:
         pass
-    try:
-        answers = dns.resolver.query(hostname, 'A')
-        if answers:
-            return answers[0].address
-    except dns.resolver.NXDOMAIN:
-        pass
-    return None
-
-
-CLUSTER_RESOURCES = {
-    'quantum-dhcp-agent': 'res_quantum_dhcp_agent',
-    'quantum-l3-agent': 'res_quantum_l3_agent'
-    }
-
-HAMARKER = '/var/lib/juju/haconfigured'
+    answers = dns.resolver.query(hostname, 'A')
+    if answers:
+        return answers[0].address
+    else:
+        return None
 
 
 def _service_ctl(service, action):
-    if (os.path.exists(HAMARKER) and
-        os.path.exists(os.path.join('/etc/init/',
-                                   '{}.override'.format(service))) and
-        service in CLUSTER_RESOURCES):
-        hostname = str(subprocess.check_output(['hostname'])).strip()
-        service_status = \
-            subprocess.check_output(['crm', 'resource', 'show',
-                                     CLUSTER_RESOURCES[service]])
-        # Only restart if we are the node that owns the service
-        if hostname in service_status:
-            subprocess.check_call(['crm', 'resource', action,
-                                  CLUSTER_RESOURCES[service]])
-    else:
-        subprocess.call(['service', service, action])
+    subprocess.call(['service', service, action])
 
 
 def restart(*services):
@@ -271,57 +248,3 @@ def get_os_version(package=None):
         return apt.upstream_version(pkg.current_ver.ver_str)
     else:
         return None
-
-
-def is_clustered():
-    for r_id in (relation_ids('ha') or []):
-        for unit in (relation_list(r_id) or []):
-            clustered = relation_get('clustered',
-                                     unit=unit,
-                                     rid=r_id)
-            if clustered:
-                return True
-    return False
-
-
-def is_leader(resource):
-    if os.path.exists('/usr/sbin/crm'):
-        try:
-            status = subprocess.check_output(['crm', 'resource',
-                                              'show', resource])
-            hostname = get_unit_hostname()
-            if hostname in status:
-                return True
-        except subprocess.CalledProcessError:
-            pass
-    return False
-
-
-def peer_units():
-    peers = []
-    for r_id in (relation_ids('cluster') or []):
-        for unit in (relation_list(r_id) or []):
-            peers.append(unit)
-    return peers
-
-
-def oldest_peer(peers):
-    local_unit_no = int(os.getenv('JUJU_UNIT_NAME').split('/')[1])
-    for peer in peers:
-        remote_unit_no = int(peer.split('/')[1])
-        if remote_unit_no < local_unit_no:
-            return False
-    return True
-
-
-def eligible_leader(resource):
-    if is_clustered():
-        if not is_leader(resource):
-            juju_log('INFO', 'Deferring action to CRM leader.')
-            return False
-    else:
-        peers = peer_units()
-        if peers and not oldest_peer(peers):
-            juju_log('INFO', 'Deferring action to oldest service unit.')
-            return False
-    return True

@@ -11,7 +11,7 @@ PLUGIN = utils.config_get('plugin')
 def install():
     utils.configure_source()
     if PLUGIN in qutils.GATEWAY_PKGS.keys():
-        if PLUGIN in [qutils.OVS, qutils.NVP]:
+        if PLUGIN == qutils.OVS:
             # Install OVS DKMS first to ensure that the ovs module
             # loaded supports GRE tunnels
             utils.install('openvswitch-datapath-dkms')
@@ -28,7 +28,7 @@ def config_changed():
         render_l3_agent_conf()
         render_metadata_agent_conf()
         render_metadata_api_conf()
-        if PLUGIN in [qutils.OVS, qutils.NVP]:
+        if PLUGIN == qutils.OVS:
             qutils.add_bridge(qutils.INT_BRIDGE)
             qutils.add_bridge(qutils.EXT_BRIDGE)
             ext_port = utils.config_get('ext-port')
@@ -154,7 +154,7 @@ def db_joined():
 
 
 def db_changed():
-    #render_plugin_conf()
+    render_plugin_conf()
     render_metadata_api_conf()
     restart_agents()
 
@@ -225,62 +225,11 @@ def nm_changed():
     render_l3_agent_conf()
     render_metadata_agent_conf()
     render_metadata_api_conf()
-    if (PLUGIN == qutils.NVP and
-        utils.relation_get('nvp-manager')):
-        qutils.set_manager(utils.relation_get('nvp-manager'))
     restart_agents()
 
 
 def restart_agents():
-    if utils.eligible_leader(RESOURCE_GROUP):
-        utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
-    else:
-        # Stop any clustered agents and flush local config
-        # from network namespaces, ovs ports and dnsmasq instances
-        utils.stop(*qutils.CLUSTERED_AGENTS[PLUGIN])
-        utils.restart(*qutils.STANDALONE_AGENTS[PLUGIN])
-        qutils.flush_local_configuration()
-
-
-RESOURCE_GROUP = 'grp_quantum_services'
-
-
-def ha_relation_joined():
-    # init services that will be clusterized. Used to disable init scripts
-    # Used when resources have upstart jobs that are needed to be disabled.
-    # resource_name:init_script_name
-    init_services = {'res_quantum_dhcp_agent': 'quantum-dhcp-agent',
-                     'res_quantum_l3_agent': 'quantum-l3-agent'}
-
-    # Obtain resources
-    # TODO: Just use upstart for the time being
-    #resources = {'res_quantum_dhcp_agent': 'ocf:openstack:quantum-agent-dhcp',
-    #             'res_quantum_l3_agent': 'ocf:openstack:quantum-agent-l3'}
-    resources = {'res_quantum_dhcp_agent': 'upstart:quantum-dhcp-agent',
-                 'res_quantum_l3_agent': 'upstart:quantum-l3-agent'}
-    # TODO: monitors are currently disabled as this creates issues
-    #       when forming the cluster.
-    resource_params = {'res_quantum_dhcp_agent':
-                            'op monitor interval="5s"',
-                       'res_quantum_l3_agent':
-                            'op monitor interval="5s"'}
-    groups = {
-        RESOURCE_GROUP:
-            'res_quantum_dhcp_agent res_quantum_l3_agent'
-        }
-    # set relation values
-    utils.relation_set(resources=resources,
-                       resource_params=resource_params,
-                       init_services=init_services,
-                       groups=groups,
-                       corosync_bindiface=utils.config_get('ha-bindiface'),
-                       corosync_mcastport=utils.config_get('ha-mcastport'))
-
-
-def cluster_changed():
-    if not utils.eligible_leader(RESOURCE_GROUP):
-        utils.stop(*qutils.CLUSTERED_AGENTS[PLUGIN])
-        qutils.flush_local_configuration()
+    utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
 
 
 utils.do_hooks({
@@ -291,9 +240,7 @@ utils.do_hooks({
     "shared-db-relation-changed": db_changed,
     "amqp-relation-joined": amqp_joined,
     "amqp-relation-changed": amqp_changed,
-    "quantum-network-service-relation-changed": nm_changed,
-    "ha-relation-joined": ha_relation_joined,
-    "cluster-relation-changed": cluster_changed
+    "quantum-network-service-relation-changed": nm_changed
     })
 
 sys.exit(0)

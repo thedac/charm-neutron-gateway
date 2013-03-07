@@ -21,9 +21,3 @@ requires:
     interface: mysql-shared
   amqp:
     interface: rabbitmq
-  ha:
-    interface: hacluster
-    scope: container
-peers:
-  cluster:
-    interface: quantum-gateway-ha
