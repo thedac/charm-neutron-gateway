@@ -59,13 +59,11 @@ def render_l3_agent_conf():
 
 
 def render_dhcp_agent_conf():
-    context = {}
-    if (context and
-        os.path.exists(qutils.DHCP_AGENT_CONF)):
+    if (os.path.exists(qutils.DHCP_AGENT_CONF)):
         with open(qutils.DHCP_AGENT_CONF, "w") as conf:
             conf.write(utils.render_template(
                             os.path.basename(qutils.DHCP_AGENT_CONF),
-                            context
+                            {}
                             )
                        )
 
