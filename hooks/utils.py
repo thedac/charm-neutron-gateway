@@ -12,6 +12,7 @@ import subprocess
 import socket
 import sys
 import apt_pkg as apt
+import base64
 
 
 def do_hooks(hooks):
@@ -248,3 +249,10 @@ def get_os_version(package=None):
         return apt.upstream_version(pkg.current_ver.ver_str)
     else:
         return None
+
+
+def install_ca(ca_cert):
+    with open('/usr/local/share/ca-certificates/keystone_juju_ca_cert.crt',
+              'w') as crt:
+        crt.write(base64.b64decode(ca_cert))
+    subprocess.check_call(['update-ca-certificates', '--fresh'])

@@ -24,7 +24,7 @@ def install():
 def config_changed():
     if PLUGIN in qutils.GATEWAY_PKGS.keys():
         render_quantum_conf()
-        #render_plugin_conf()
+        render_dhcp_agent_conf()
         render_l3_agent_conf()
         render_metadata_agent_conf()
         render_metadata_api_conf()
@@ -53,6 +53,18 @@ def render_l3_agent_conf():
         with open(qutils.L3_AGENT_CONF, "w") as conf:
             conf.write(utils.render_template(
                             os.path.basename(qutils.L3_AGENT_CONF),
+                            context
+                            )
+                       )
+
+
+def render_dhcp_agent_conf():
+    context = {}
+    if (context and
+        os.path.exists(qutils.DHCP_AGENT_CONF)):
+        with open(qutils.DHCP_AGENT_CONF, "w") as conf:
+            conf.write(utils.render_template(
+                            os.path.basename(qutils.DHCP_AGENT_CONF),
                             context
                             )
                        )
@@ -136,6 +148,8 @@ def get_keystone_conf():
                                                    unit, relid),
                 "quantum_port": utils.relation_get('quantum_port',
                                                    unit, relid),
+                "quantum_url": utils.relation_get('quantum_url',
+                                                   unit, relid),
                 "region": utils.relation_get('region',
                                              unit, relid)
                 }
@@ -197,6 +211,7 @@ def amqp_joined():
 
 
 def amqp_changed():
+    render_dhcp_agent_conf()
     render_quantum_conf()
     render_metadata_api_conf()
     restart_agents()
@@ -222,10 +237,27 @@ def get_rabbit_conf():
 
 
 def nm_changed():
+    render_dhcp_agent_conf()
     render_l3_agent_conf()
     render_metadata_agent_conf()
     render_metadata_api_conf()
+    store_ca_cert()
     restart_agents()
+
+
+def store_ca_cert():
+    ca_cert = get_ca_cert()
+    if ca_cert:
+        utils.install_ca(ca_cert)
+
+
+def get_ca_cert():
+    for relid in utils.relation_ids('quantum-network-service'):
+        for unit in utils.relation_list(relid):
+            ca_cert = utils.relation_get('ca_cert', unit, relid)
+            if ca_cert:
+                return ca_cert
+    return None
 
 
 def restart_agents():
