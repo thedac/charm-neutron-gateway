@@ -6,24 +6,17 @@ from utils import get_os_version
 
 
 OVS = "ovs"
-NVP = "nvp"
 
 OVS_PLUGIN = \
     "quantum.plugins.openvswitch.ovs_quantum_plugin.OVSQuantumPluginV2"
-NVP_PLUGIN = \
-    "quantum.plugins.nicira.nicira_nvp_plugin.QuantumPlugin.NvpPluginV2"
 CORE_PLUGIN = {
     OVS: OVS_PLUGIN,
-    NVP: NVP_PLUGIN
     }
 
 OVS_PLUGIN_CONF = \
     "/etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini"
-NVP_PLUGIN_CONF = \
-    "/etc/quantum/plugins/nicira/nvp.ini"
 PLUGIN_CONF = {
     OVS: OVS_PLUGIN_CONF,
-    NVP: NVP_PLUGIN_CONF
     }
 
 GATEWAY_PKGS = {
@@ -34,19 +27,8 @@ GATEWAY_PKGS = {
         'python-mysqldb',
         "nova-api-metadata"
         ],
-    NVP: [
-        "quantum-plugin-nicira",
-        "quantum-l3-agent",
-        "quantum-dhcp-agent",
-        'python-mysqldb',
-        "nova-api-metadata"
-        ]
     }
 
-# TODO: conditionally add quantum-metadata-agent if
-# running 2013.1 onwards. OR add some overrides
-# start on starting quantum-l3-agent
-# stop on stopping quantum-l3-agent
 GATEWAY_AGENTS = {
     OVS: [
         "quantum-plugin-openvswitch-agent",
@@ -54,33 +36,8 @@ GATEWAY_AGENTS = {
         "quantum-dhcp-agent",
         "nova-api-metadata"
         ],
-    NVP: [
-        "quantum-l3-agent",
-        "quantum-dhcp-agent",
-        "nova-api-metadata"
-        ]
     }
 
-CLUSTERED_AGENTS = {
-    OVS: [
-        "quantum-l3-agent",
-        "quantum-dhcp-agent",
-        ],
-    NVP: [
-        "quantum-l3-agent",
-        "quantum-dhcp-agent",
-        ]
-    }
-
-STANDALONE_AGENTS = {
-    OVS: [
-        "quantum-plugin-openvswitch-agent",
-        "nova-api-metadata"
-        ],
-    NVP: [
-        "nova-api-metadata"
-        ]
-    }
 
 if get_os_version('quantum-common') >= "2013.1":
     for plugin in GATEWAY_AGENTS:

@@ -24,10 +24,11 @@ def install():
 def config_changed():
     if PLUGIN in qutils.GATEWAY_PKGS.keys():
         render_quantum_conf()
-        render_plugin_conf()
+        render_dhcp_agent_conf()
         render_l3_agent_conf()
         render_metadata_agent_conf()
         render_metadata_api_conf()
+        render_plugin_conf()
         if PLUGIN == qutils.OVS:
             qutils.add_bridge(qutils.INT_BRIDGE)
             qutils.add_bridge(qutils.EXT_BRIDGE)
@@ -54,6 +55,16 @@ def render_l3_agent_conf():
             conf.write(utils.render_template(
                             os.path.basename(qutils.L3_AGENT_CONF),
                             context
+                            )
+                       )
+
+
+def render_dhcp_agent_conf():
+    if (os.path.exists(qutils.DHCP_AGENT_CONF)):
+        with open(qutils.DHCP_AGENT_CONF, "w") as conf:
+            conf.write(utils.render_template(
+                            os.path.basename(qutils.DHCP_AGENT_CONF),
+                            {}
                             )
                        )
 
@@ -136,6 +147,8 @@ def get_keystone_conf():
                                                    unit, relid),
                 "quantum_port": utils.relation_get('quantum_port',
                                                    unit, relid),
+                "quantum_url": utils.relation_get('quantum_url',
+                                                   unit, relid),
                 "region": utils.relation_get('region',
                                              unit, relid)
                 }
@@ -197,6 +210,7 @@ def amqp_joined():
 
 
 def amqp_changed():
+    render_dhcp_agent_conf()
     render_quantum_conf()
     render_metadata_api_conf()
     restart_agents()
@@ -222,62 +236,31 @@ def get_rabbit_conf():
 
 
 def nm_changed():
+    render_dhcp_agent_conf()
     render_l3_agent_conf()
     render_metadata_agent_conf()
     render_metadata_api_conf()
+    store_ca_cert()
     restart_agents()
 
 
+def store_ca_cert():
+    ca_cert = get_ca_cert()
+    if ca_cert:
+        utils.install_ca(ca_cert)
+
+
+def get_ca_cert():
+    for relid in utils.relation_ids('quantum-network-service'):
+        for unit in utils.relation_list(relid):
+            ca_cert = utils.relation_get('ca_cert', unit, relid)
+            if ca_cert:
+                return ca_cert
+    return None
+
+
 def restart_agents():
-    if utils.eligible_leader(RESOURCE_GROUP):
-        utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
-    else:
-        # Stop any clustered agents and flush local config
-        # from network namespaces, ovs ports and dnsmasq instances
-        utils.stop(*qutils.CLUSTERED_AGENTS[PLUGIN])
-        utils.restart(*qutils.STANDALONE_AGENTS[PLUGIN])
-        qutils.flush_local_configuration()
-
-
-RESOURCE_GROUP = 'grp_quantum_services'
-
-
-def ha_relation_joined():
-    # init services that will be clusterized. Used to disable init scripts
-    # Used when resources have upstart jobs that are needed to be disabled.
-    # resource_name:init_script_name
-    init_services = {'res_quantum_dhcp_agent': 'quantum-dhcp-agent',
-                     'res_quantum_l3_agent': 'quantum-l3-agent'}
-
-    # Obtain resources
-    # TODO: Just use upstart for the time being
-    #resources = {'res_quantum_dhcp_agent': 'ocf:openstack:quantum-agent-dhcp',
-    #             'res_quantum_l3_agent': 'ocf:openstack:quantum-agent-l3'}
-    resources = {'res_quantum_dhcp_agent': 'upstart:quantum-dhcp-agent',
-                 'res_quantum_l3_agent': 'upstart:quantum-l3-agent'}
-    # TODO: monitors are currently disabled as this creates issues
-    #       when forming the cluster.
-    resource_params = {'res_quantum_dhcp_agent':
-                            'op monitor interval="5s"',
-                       'res_quantum_l3_agent':
-                            'op monitor interval="5s"'}
-    groups = {
-        RESOURCE_GROUP:
-            'res_quantum_dhcp_agent res_quantum_l3_agent'
-        }
-    # set relation values
-    utils.relation_set(resources=resources,
-                       resource_params=resource_params,
-                       init_services=init_services,
-                       groups=groups,
-                       corosync_bindiface=utils.config_get('ha-bindiface'),
-                       corosync_mcastport=utils.config_get('ha-mcastport'))
-
-
-def cluster_changed():
-    if not utils.eligible_leader(RESOURCE_GROUP):
-        utils.stop(*qutils.CLUSTERED_AGENTS[PLUGIN])
-        qutils.flush_local_configuration()
+    utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
 
 
 utils.do_hooks({
@@ -288,9 +271,7 @@ utils.do_hooks({
     "shared-db-relation-changed": db_changed,
     "amqp-relation-joined": amqp_joined,
     "amqp-relation-changed": amqp_changed,
-    "quantum-network-service-relation-changed": nm_changed,
-    "ha-relation-joined": ha_relation_joined,
-    "cluster-relation-changed": cluster_changed
+    "quantum-network-service-relation-changed": nm_changed
     })
 
 sys.exit(0)
