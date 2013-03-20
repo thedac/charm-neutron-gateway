@@ -3,8 +3,10 @@ import os
 import uuid
 import base64
 import apt_pkg as apt
-from lib.utils import juju_log as log
-from lib.utils import get_unit_hostname
+from lib.utils import (
+    unit_get,
+    juju_log as log
+    )
 
 
 OVS = "ovs"
@@ -157,7 +159,7 @@ def reassign_agent_resources(env):
                             auth_url=auth_url,
                             region_name=env['region'])
 
-    hostname = get_unit_hostname()
+    hostname = unit_get('private-address')
     agents = quantum.list_agents(agent_type=DHCP_AGENT)
     dhcp_agent_id = l3_agent_id = None
     networks = {}
