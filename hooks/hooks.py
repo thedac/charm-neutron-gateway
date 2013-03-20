@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-import utils
+import lib.utils as utils
+import lib.cluster_utils as cluster
 import sys
 import quantum_utils as qutils
 import os
@@ -247,7 +248,7 @@ def nm_changed():
 def store_ca_cert():
     ca_cert = get_ca_cert()
     if ca_cert:
-        utils.install_ca(ca_cert)
+        qutils.install_ca(ca_cert)
 
 
 def get_ca_cert():
@@ -263,6 +264,11 @@ def restart_agents():
     utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
 
 
+def cluster_departed():
+    conf = get_keystone_conf()
+    if conf and cluster.eligible_leader(None):
+        qutils.reassign_agent_resources(conf)
+
 utils.do_hooks({
     "install": install,
     "config-changed": config_changed,
@@ -271,7 +277,8 @@ utils.do_hooks({
     "shared-db-relation-changed": db_changed,
     "amqp-relation-joined": amqp_joined,
     "amqp-relation-changed": amqp_changed,
-    "quantum-network-service-relation-changed": nm_changed
+    "quantum-network-service-relation-changed": nm_changed,
+    "cluster-relation-departed": cluster_departed
     })
 
 sys.exit(0)

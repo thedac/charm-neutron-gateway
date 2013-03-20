@@ -7,7 +7,6 @@ options:
       Supported values include:
       .
         ovs - OpenVSwitch
-        nvp - Nicira Network Virtualization Platform
   ext-port:
     type: string
     description: |
@@ -23,16 +22,3 @@ options:
         - cloud:precise-folsom/proposed
         - cloud:precise-folsom
         - deb http://my.archive.com/ubuntu main|KEYID
-  # HA configuration settings
-  ha-bindiface:
-    type: string
-    default: eth0
-    description: |
-      Default network interface on which HA cluster will bind to communication
-      with the other members of the HA Cluster.
-  ha-mcastport:
-    type: int
-    default: 5405
-    description: |
-      Default multicast port number that will be used to communicate between
-      HA Cluster nodes.
