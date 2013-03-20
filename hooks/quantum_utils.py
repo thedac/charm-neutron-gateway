@@ -3,6 +3,7 @@ import os
 import uuid
 import base64
 import apt_pkg as apt
+from random import randint
 from lib.utils import (
     unit_get,
     juju_log as log
@@ -161,9 +162,9 @@ def reassign_agent_resources(env):
                             auth_url=auth_url,
                             region_name=env['region'])
 
-    hostname = unit_get('private-address')
     agents = quantum.list_agents(agent_type=DHCP_AGENT)
-    dhcp_agent_id = l3_agent_id = None
+    dhcp_agents = []
+    l3_agents = []
     networks = {}
     for agent in agents['agents']:
         if not agent['alive']:
@@ -171,8 +172,8 @@ def reassign_agent_resources(env):
             for network in \
                 quantum.list_networks_on_dhcp_agent(agent['id'])['networks']:
                 networks[network['id']] = agent['id']
-        if agent['host'] == hostname:
-            dhcp_agent_id = agent['id']
+        else:
+            dhcp_agents.append(agent['id'])
 
     agents = quantum.list_agents(agent_type=L3_AGENT)
     routers = {}
@@ -182,23 +183,29 @@ def reassign_agent_resources(env):
             for router in \
                 quantum.list_routers_on_l3_agent(agent['id'])['routers']:
                 routers[router['id']] = agent['id']
-        if agent['host'] == hostname:
-            l3_agent_id = agent['id']
+        else:
+            l3_agents.append(agent['id'])
 
+    index = 0
     for router_id in routers:
+        agent = index % len(l3_agents)
         log('INFO',
             'Moving router %s from %s to %s' % \
-            (router_id, routers[router_id], l3_agent_id))
+            (router_id, routers[router_id], l3_agents[agent]))
         quantum.remove_router_from_l3_agent(l3_agent=routers[router_id],
                                             router_id=router_id)
-        quantum.add_router_to_l3_agent(l3_agent=l3_agent_id,
+        quantum.add_router_to_l3_agent(l3_agent=l3_agents[agent],
                                        body={'router_id': router_id})
+        index += 1
 
+    index = 0
     for network_id in networks:
+        agent = index % len(dhcp_agents)
         log('INFO',
             'Moving network %s from %s to %s' % \
-            (network_id, networks[network_id], dhcp_agent_id))
+            (network_id, networks[network_id], dhcp_agents[agent]))
         quantum.remove_network_from_dhcp_agent(dhcp_agent=networks[network_id],
                                                network_id=network_id)
-        quantum.add_network_to_dhcp_agent(dhcp_agent=dhcp_agent_id,
+        quantum.add_network_to_dhcp_agent(dhcp_agent=dhcp_agents[agent],
                                           body={'network_id': network_id})
+        index += 1
