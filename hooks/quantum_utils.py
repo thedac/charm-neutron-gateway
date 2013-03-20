@@ -42,6 +42,8 @@ GATEWAY_AGENTS = {
         ],
     }
 
+EXT_PORT_CONF = '/etc/init/ext-port.conf'
+
 
 def get_os_version(package=None):
     apt.init()
