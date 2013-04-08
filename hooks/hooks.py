@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-import utils
+import lib.utils as utils
+import lib.cluster_utils as cluster
 import sys
 import quantum_utils as qutils
 import os
@@ -29,6 +30,7 @@ def config_changed():
         render_metadata_agent_conf()
         render_metadata_api_conf()
         render_plugin_conf()
+        render_ext_port_upstart()
         if PLUGIN == qutils.OVS:
             qutils.add_bridge(qutils.INT_BRIDGE)
             qutils.add_bridge(qutils.EXT_BRIDGE)
@@ -45,6 +47,19 @@ def config_changed():
 def upgrade_charm():
     install()
     config_changed()
+
+
+def render_ext_port_upstart():
+    if utils.config_get('ext-port'):
+        with open(qutils.EXT_PORT_CONF, "w") as conf:
+            conf.write(utils.render_template(
+                            os.path.basename(qutils.EXT_PORT_CONF),
+                            {"ext_port": utils.config_get('ext-port')}
+                            )
+                       )
+    else:
+        if os.path.exists(qutils.EXT_PORT_CONF):
+            os.remove(qutils.EXT_PORT_CONF)
 
 
 def render_l3_agent_conf():
@@ -247,7 +262,7 @@ def nm_changed():
 def store_ca_cert():
     ca_cert = get_ca_cert()
     if ca_cert:
-        utils.install_ca(ca_cert)
+        qutils.install_ca(ca_cert)
 
 
 def get_ca_cert():
@@ -263,6 +278,11 @@ def restart_agents():
     utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
 
 
+def cluster_departed():
+    conf = get_keystone_conf()
+    if conf and cluster.eligible_leader(None):
+        qutils.reassign_agent_resources(conf)
+
 utils.do_hooks({
     "install": install,
     "config-changed": config_changed,
@@ -271,7 +291,8 @@ utils.do_hooks({
     "shared-db-relation-changed": db_changed,
     "amqp-relation-joined": amqp_joined,
     "amqp-relation-changed": amqp_changed,
-    "quantum-network-service-relation-changed": nm_changed
+    "quantum-network-service-relation-changed": nm_changed,
+    "cluster-relation-departed": cluster_departed
     })
 
 sys.exit(0)

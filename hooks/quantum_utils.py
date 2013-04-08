@@ -1,8 +1,13 @@
 import subprocess
 import os
 import uuid
-from utils import juju_log as log
-from utils import get_os_version
+import base64
+import apt_pkg as apt
+from random import randint
+from lib.utils import (
+    unit_get,
+    juju_log as log
+    )
 
 
 OVS = "ovs"
@@ -37,6 +42,18 @@ GATEWAY_AGENTS = {
         "nova-api-metadata"
         ],
     }
+
+EXT_PORT_CONF = '/etc/init/ext-port.conf'
+
+
+def get_os_version(package=None):
+    apt.init()
+    cache = apt.Cache()
+    pkg = cache[package or 'quantum-common']
+    if pkg.current_ver:
+        return apt.upstream_version(pkg.current_ver.ver_str)
+    else:
+        return None
 
 
 if get_os_version('quantum-common') >= "2013.1":
@@ -122,3 +139,73 @@ def flush_local_configuration():
             agent_cmd.append('--config-file=/etc/quantum/{}'\
                                 .format(agent_conf))
             subprocess.call(agent_cmd)
+
+
+def install_ca(ca_cert):
+    with open('/usr/local/share/ca-certificates/keystone_juju_ca_cert.crt',
+              'w') as crt:
+        crt.write(base64.b64decode(ca_cert))
+    subprocess.check_call(['update-ca-certificates', '--fresh'])
+
+DHCP_AGENT = "DHCP Agent"
+L3_AGENT = "L3 Agent"
+
+
+def reassign_agent_resources(env):
+    ''' Use agent scheduler API to detect down agents and re-schedule '''
+    from quantumclient.v2_0 import client
+    # TODO: Fixup for https keystone
+    auth_url = 'http://%(keystone_host)s:%(auth_port)s/v2.0' % env
+    quantum = client.Client(username=env['service_username'],
+                            password=env['service_password'],
+                            tenant_name=env['service_tenant'],
+                            auth_url=auth_url,
+                            region_name=env['region'])
+
+    agents = quantum.list_agents(agent_type=DHCP_AGENT)
+    dhcp_agents = []
+    l3_agents = []
+    networks = {}
+    for agent in agents['agents']:
+        if not agent['alive']:
+            log('INFO', 'DHCP Agent %s down' % agent['id'])
+            for network in \
+                quantum.list_networks_on_dhcp_agent(agent['id'])['networks']:
+                networks[network['id']] = agent['id']
+        else:
+            dhcp_agents.append(agent['id'])
+
+    agents = quantum.list_agents(agent_type=L3_AGENT)
+    routers = {}
+    for agent in agents['agents']:
+        if not agent['alive']:
+            log('INFO', 'L3 Agent %s down' % agent['id'])
+            for router in \
+                quantum.list_routers_on_l3_agent(agent['id'])['routers']:
+                routers[router['id']] = agent['id']
+        else:
+            l3_agents.append(agent['id'])
+
+    index = 0
+    for router_id in routers:
+        agent = index % len(l3_agents)
+        log('INFO',
+            'Moving router %s from %s to %s' % \
+            (router_id, routers[router_id], l3_agents[agent]))
+        quantum.remove_router_from_l3_agent(l3_agent=routers[router_id],
+                                            router_id=router_id)
+        quantum.add_router_to_l3_agent(l3_agent=l3_agents[agent],
+                                       body={'router_id': router_id})
+        index += 1
+
+    index = 0
+    for network_id in networks:
+        agent = index % len(dhcp_agents)
+        log('INFO',
+            'Moving network %s from %s to %s' % \
+            (network_id, networks[network_id], dhcp_agents[agent]))
+        quantum.remove_network_from_dhcp_agent(dhcp_agent=networks[network_id],
+                                               network_id=network_id)
+        quantum.add_network_to_dhcp_agent(dhcp_agent=dhcp_agents[agent],
+                                          body={'network_id': network_id})
+        index += 1
