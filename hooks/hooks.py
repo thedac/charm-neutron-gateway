@@ -32,6 +32,7 @@ def config_changed():
         render_metadata_api_conf()
         render_plugin_conf()
         render_ext_port_upstart()
+        render_evacuate_unit()
         if PLUGIN == qutils.OVS:
             qutils.add_bridge(qutils.INT_BRIDGE)
             qutils.add_bridge(qutils.EXT_BRIDGE)
