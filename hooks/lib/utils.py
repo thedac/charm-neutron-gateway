@@ -329,8 +329,8 @@ def file_hash(path):
     if os.path.exists(path):
         h = hashlib.md5()
         with open(path, 'r') as source:
-            h.update(source.read())
-            return h.hexdigest()
+            h.update(source.read())  # IGNORE:E1101 - it does have update
+        return h.hexdigest()
     else:
         return None
 
