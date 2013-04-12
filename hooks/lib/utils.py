@@ -346,7 +346,8 @@ def inteli_restart(restart_map):
             for path in restart_map:
                 if checksums[path] != file_hash(path):
                     restarts.append(restart_map[path])
-            restart(*list(set(restarts)))
+            restarts = list(set(restarts))
+            restart(*restarts)
         return wrapped_f
     return wrap
 
