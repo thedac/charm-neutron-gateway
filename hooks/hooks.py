@@ -143,6 +143,13 @@ def render_metadata_api_conf():
                        )
 
 
+def render_evacuate_unit():
+    context = get_keystone_conf()
+    if context:
+        with open('/usr/local/bin/quantum-evacuate-unit', "w") as conf:
+            conf.write(utils.render_template('evacuate_unit.py', context))
+
+
 def get_keystone_conf():
     for relid in utils.relation_ids('quantum-network-service'):
         for unit in utils.relation_list(relid):
@@ -256,6 +263,7 @@ def nm_changed():
     render_l3_agent_conf()
     render_metadata_agent_conf()
     render_metadata_api_conf()
+    render_evacuate_unit()
     store_ca_cert()
 
 
