@@ -3,9 +3,7 @@ import os
 import uuid
 import base64
 import apt_pkg as apt
-from random import randint
 from lib.utils import (
-    unit_get,
     juju_log as log
     )
 
@@ -71,6 +69,32 @@ L3_AGENT_CONF = "/etc/quantum/l3_agent.ini"
 DHCP_AGENT_CONF = "/etc/quantum/dhcp_agent.ini"
 METADATA_AGENT_CONF = "/etc/quantum/metadata_agent.ini"
 NOVA_CONF = "/etc/nova/nova.conf"
+
+RESTART_MAP = {
+    QUANTUM_CONF: [
+        'quantum-l3-agent',
+        'quantum-dhcp-agent',
+        'quantum-metadata-agent',
+        'quantum-plugin-openvswitch-agent'
+        ],
+    DHCP_AGENT_CONF: [
+        'quantum-dhcp-agent'
+        ],
+    L3_AGENT_CONF: [
+        'quantum-l3-agent'
+        ],
+    METADATA_AGENT_CONF: [
+        'quantum-metadata-agent'
+        ],
+    OVS_PLUGIN_CONF: [
+        'quantum-l3-agent',
+        'quantum-dhcp-agent',
+        'quantum-plugin-openvswitch-agent'
+        ],
+    NOVA_CONF: [
+        'nova-api-metadata'
+        ]
+    }
 
 RABBIT_USER = "nova"
 RABBIT_VHOST = "nova"
