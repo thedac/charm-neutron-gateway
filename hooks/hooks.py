@@ -149,7 +149,7 @@ def render_evacuate_unit():
     if context:
         with open('/usr/local/bin/quantum-evacuate-unit', "w") as conf:
             conf.write(utils.render_template('evacuate_unit.py', context))
-        os.chmod('/usr/local/bin/quantum-evacuate-unit', 0777)
+        os.chmod('/usr/local/bin/quantum-evacuate-unit', 0700)
 
 
 def get_keystone_conf():
