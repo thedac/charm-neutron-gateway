@@ -87,8 +87,6 @@ RESTART_MAP = {
         'quantum-metadata-agent'
         ],
     OVS_PLUGIN_CONF: [
-        'quantum-l3-agent',
-        'quantum-dhcp-agent',
         'quantum-plugin-openvswitch-agent'
         ],
     NOVA_CONF: [
