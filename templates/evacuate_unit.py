@@ -29,7 +29,6 @@ def evacuate_unit(unit):
         if agent['alive'] and agent['host'] != unit:
             dhcp_agents.append(agent['id'])
         elif agent['host'] == unit:
-            log('INFO', 'DHCP Agent %s down' % agent['id'])
             for network in \
                 quantum.list_networks_on_dhcp_agent(agent['id'])['networks']:
                 networks[network['id']] = agent['id']
@@ -68,4 +67,4 @@ def evacuate_unit(unit):
                                           body={'network_id': network_id})
         index += 1
 
-evacuate_unit(subprocess.check_call(['hostname', '-f']))
+evacuate_unit(subprocess.check_output(['hostname', '-f']).strip())
