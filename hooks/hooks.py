@@ -22,6 +22,7 @@ def install():
         sys.exit(1)
 
 
+@utils.inteli_restart(qutils.RESTART_MAP)
 def config_changed():
     if PLUGIN in qutils.GATEWAY_PKGS.keys():
         render_quantum_conf()
@@ -31,13 +32,13 @@ def config_changed():
         render_metadata_api_conf()
         render_plugin_conf()
         render_ext_port_upstart()
+        render_evacuate_unit()
         if PLUGIN == qutils.OVS:
             qutils.add_bridge(qutils.INT_BRIDGE)
             qutils.add_bridge(qutils.EXT_BRIDGE)
             ext_port = utils.config_get('ext-port')
             if ext_port:
                 qutils.add_bridge_port(qutils.EXT_BRIDGE, ext_port)
-        restart_agents()
     else:
         utils.juju_log('ERROR',
                        'Please provide a valid plugin config')
@@ -143,6 +144,14 @@ def render_metadata_api_conf():
                        )
 
 
+def render_evacuate_unit():
+    context = get_keystone_conf()
+    if context:
+        with open('/usr/local/bin/quantum-evacuate-unit', "w") as conf:
+            conf.write(utils.render_template('evacuate_unit.py', context))
+        os.chmod('/usr/local/bin/quantum-evacuate-unit', 0700)
+
+
 def get_keystone_conf():
     for relid in utils.relation_ids('quantum-network-service'):
         for unit in utils.relation_list(relid):
@@ -181,10 +190,10 @@ def db_joined():
                        nova_hostname=utils.unit_get('private-address'))
 
 
+@utils.inteli_restart(qutils.RESTART_MAP)
 def db_changed():
     render_plugin_conf()
     render_metadata_api_conf()
-    restart_agents()
 
 
 def get_quantum_db_conf():
@@ -224,11 +233,11 @@ def amqp_joined():
                        vhost=qutils.RABBIT_VHOST)
 
 
+@utils.inteli_restart(qutils.RESTART_MAP)
 def amqp_changed():
     render_dhcp_agent_conf()
     render_quantum_conf()
     render_metadata_api_conf()
-    restart_agents()
 
 
 def get_rabbit_conf():
@@ -250,13 +259,14 @@ def get_rabbit_conf():
     return None
 
 
+@utils.inteli_restart(qutils.RESTART_MAP)
 def nm_changed():
     render_dhcp_agent_conf()
     render_l3_agent_conf()
     render_metadata_agent_conf()
     render_metadata_api_conf()
+    render_evacuate_unit()
     store_ca_cert()
-    restart_agents()
 
 
 def store_ca_cert():
@@ -272,10 +282,6 @@ def get_ca_cert():
             if ca_cert:
                 return ca_cert
     return None
-
-
-def restart_agents():
-    utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
 
 
 def cluster_departed():
