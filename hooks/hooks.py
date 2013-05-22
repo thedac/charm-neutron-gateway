@@ -26,7 +26,7 @@ def install():
 @utils.inteli_restart(qutils.RESTART_MAP)
 def config_changed():
     src = utils.config_get('openstack-origin')
-    available = openstack.get_os_codename_install_source()
+    available = openstack.get_os_codename_install_source(src)
     installed = openstack.get_os_codename_package('quantum-common')
     if (available and
         openstack.get_os_version_codename(available) > \
