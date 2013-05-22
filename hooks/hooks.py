@@ -31,7 +31,7 @@ def config_changed():
     if (available and
         openstack.get_os_version_codename(available) > \
         openstack.get_os_version_codename(installed)):
-        qutils.do_openstack_upgrade(src)
+        qutils.do_openstack_upgrade()
 
     if PLUGIN in qutils.GATEWAY_PKGS.keys():
         render_quantum_conf()

@@ -239,7 +239,7 @@ def do_openstack_upgrade():
     plugin = config_get('plugin')
     pkgs = []
     if plugin in GATEWAY_PKGS.keys():
-        pkgs.append(GATEWAY_PKGS[plugin])
+        pkgs += GATEWAY_PKGS[plugin]
         if plugin == OVS:
             pkgs.append('openvswitch-datapath-dkms')
     cmd = ['apt-get', '--option', 'Dpkg::Options::=--force-confnew', '-y',
