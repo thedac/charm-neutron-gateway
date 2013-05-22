@@ -25,12 +25,12 @@ def install():
 
 @utils.inteli_restart(qutils.RESTART_MAP)
 def config_changed():
-    src = config_get('openstack-origin')
-    available = get_os_codename_install_source()
-    installed = get_os_codename_package('quantum-common')
+    src = utils.config_get('openstack-origin')
+    available = openstack.get_os_codename_install_source()
+    installed = openstack.get_os_codename_package('quantum-common')
     if (available and
-        get_os_version_codename(available) > \
-            get_os_version_codename(installed)):
+        openstack.get_os_version_codename(available) > \
+        openstack.get_os_version_codename(installed)):
         qutils.do_openstack_upgrade(src)
 
     if PLUGIN in qutils.GATEWAY_PKGS.keys():
