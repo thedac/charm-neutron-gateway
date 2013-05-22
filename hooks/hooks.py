@@ -2,6 +2,7 @@
 
 import lib.utils as utils
 import lib.cluster_utils as cluster
+import lib.openstack_common as openstack
 import sys
 import quantum_utils as qutils
 import os
@@ -24,6 +25,14 @@ def install():
 
 @utils.inteli_restart(qutils.RESTART_MAP)
 def config_changed():
+    src = config_get('openstack-origin')
+    available = get_os_codename_install_source()
+    installed = get_os_codename_package('quantum-common')
+    if (available and
+        get_os_version_codename(available) > \
+            get_os_version_codename(installed)):
+        qutils.do_openstack_upgrade(src)
+
     if PLUGIN in qutils.GATEWAY_PKGS.keys():
         render_quantum_conf()
         render_dhcp_agent_conf()

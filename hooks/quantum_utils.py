@@ -4,7 +4,9 @@ import uuid
 import base64
 import apt_pkg as apt
 from lib.utils import (
-    juju_log as log
+    juju_log as log,
+    configure_source,
+    config_get
     )
 
 
@@ -231,3 +233,15 @@ def reassign_agent_resources(env):
         quantum.add_network_to_dhcp_agent(dhcp_agent=dhcp_agents[agent],
                                           body={'network_id': network_id})
         index += 1
+
+def do_openstack_upgrade():
+    configure_source()
+    plugin = config_get('plugin')
+    pkgs = []
+    if plugin in GATEWAY_PKGS.keys():
+        pkgs.append(GATEWAY_PKGS[plugin])
+        if plugin == OVS:
+            pkgs.append('openvswitch-datapath-dkms')
+    cmd = ['apt-get', '--option', 'Dpkg::Options::=--force-confnew', '-y',
+           'install'] + pkgs
+    subprocess.check_call(cmd)
