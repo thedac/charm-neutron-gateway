@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
-import utils
+import lib.utils as utils
+import lib.cluster_utils as cluster
+import lib.openstack_common as openstack
 import sys
 import quantum_utils as qutils
 import os
@@ -21,18 +23,31 @@ def install():
         sys.exit(1)
 
 
+@utils.inteli_restart(qutils.RESTART_MAP)
 def config_changed():
+    src = utils.config_get('openstack-origin')
+    available = openstack.get_os_codename_install_source(src)
+    installed = openstack.get_os_codename_package('quantum-common')
+    if (available and
+        openstack.get_os_version_codename(available) > \
+        openstack.get_os_version_codename(installed)):
+        qutils.do_openstack_upgrade()
+
     if PLUGIN in qutils.GATEWAY_PKGS.keys():
         render_quantum_conf()
-        render_plugin_conf()
+        render_dhcp_agent_conf()
         render_l3_agent_conf()
+        render_metadata_agent_conf()
+        render_metadata_api_conf()
+        render_plugin_conf()
+        render_ext_port_upstart()
+        render_evacuate_unit()
         if PLUGIN == qutils.OVS:
             qutils.add_bridge(qutils.INT_BRIDGE)
             qutils.add_bridge(qutils.EXT_BRIDGE)
             ext_port = utils.config_get('ext-port')
             if ext_port:
                 qutils.add_bridge_port(qutils.EXT_BRIDGE, ext_port)
-        utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
     else:
         utils.juju_log('ERROR',
                        'Please provide a valid plugin config')
@@ -44,6 +59,19 @@ def upgrade_charm():
     config_changed()
 
 
+def render_ext_port_upstart():
+    if utils.config_get('ext-port'):
+        with open(qutils.EXT_PORT_CONF, "w") as conf:
+            conf.write(utils.render_template(
+                            os.path.basename(qutils.EXT_PORT_CONF),
+                            {"ext_port": utils.config_get('ext-port')}
+                            )
+                       )
+    else:
+        if os.path.exists(qutils.EXT_PORT_CONF):
+            os.remove(qutils.EXT_PORT_CONF)
+
+
 def render_l3_agent_conf():
     context = get_keystone_conf()
     if (context and
@@ -51,6 +79,30 @@ def render_l3_agent_conf():
         with open(qutils.L3_AGENT_CONF, "w") as conf:
             conf.write(utils.render_template(
                             os.path.basename(qutils.L3_AGENT_CONF),
+                            context
+                            )
+                       )
+
+
+def render_dhcp_agent_conf():
+    if (os.path.exists(qutils.DHCP_AGENT_CONF)):
+        with open(qutils.DHCP_AGENT_CONF, "w") as conf:
+            conf.write(utils.render_template(
+                            os.path.basename(qutils.DHCP_AGENT_CONF),
+                            {}
+                            )
+                       )
+
+
+def render_metadata_agent_conf():
+    context = get_keystone_conf()
+    if (context and
+        os.path.exists(qutils.METADATA_AGENT_CONF)):
+        context['local_ip'] = utils.get_host_ip()
+        context['shared_secret'] = qutils.get_shared_secret()
+        with open(qutils.METADATA_AGENT_CONF, "w") as conf:
+            conf.write(utils.render_template(
+                            os.path.basename(qutils.METADATA_AGENT_CONF),
                             context
                             )
                        )
@@ -71,7 +123,7 @@ def render_quantum_conf():
 
 
 def render_plugin_conf():
-    context = get_db_conf()
+    context = get_quantum_db_conf()
     if (context and
         os.path.exists(qutils.PLUGIN_CONF[PLUGIN])):
         context['local_ip'] = utils.get_host_ip()
@@ -82,6 +134,31 @@ def render_plugin_conf():
                             context
                             )
                        )
+
+
+def render_metadata_api_conf():
+    context = get_nova_db_conf()
+    r_context = get_rabbit_conf()
+    q_context = get_keystone_conf()
+    if (context and r_context and q_context and
+        os.path.exists(qutils.NOVA_CONF)):
+        context.update(r_context)
+        context.update(q_context)
+        context['shared_secret'] = qutils.get_shared_secret()
+        with open(qutils.NOVA_CONF, "w") as conf:
+            conf.write(utils.render_template(
+                            os.path.basename(qutils.NOVA_CONF),
+                            context
+                            )
+                       )
+
+
+def render_evacuate_unit():
+    context = get_keystone_conf()
+    if context:
+        with open('/usr/local/bin/quantum-evacuate-unit', "w") as conf:
+            conf.write(utils.render_template('evacuate_unit.py', context))
+        os.chmod('/usr/local/bin/quantum-evacuate-unit', 0700)
 
 
 def get_keystone_conf():
@@ -98,7 +175,15 @@ def get_keystone_conf():
                 "service_password": utils.relation_get('service_password',
                                                        unit, relid),
                 "service_tenant": utils.relation_get('service_tenant',
-                                                     unit, relid)
+                                                     unit, relid),
+                "quantum_host": utils.relation_get('quantum_host',
+                                                   unit, relid),
+                "quantum_port": utils.relation_get('quantum_port',
+                                                   unit, relid),
+                "quantum_url": utils.relation_get('quantum_url',
+                                                   unit, relid),
+                "region": utils.relation_get('region',
+                                             unit, relid)
                 }
             if None not in conf.itervalues():
                 return conf
@@ -106,26 +191,46 @@ def get_keystone_conf():
 
 
 def db_joined():
-    utils.relation_set(username=qutils.DB_USER,
-                       database=qutils.QUANTUM_DB,
-                       hostname=utils.unit_get('private-address'))
+    utils.relation_set(quantum_username=qutils.DB_USER,
+                       quantum_database=qutils.QUANTUM_DB,
+                       quantum_hostname=utils.unit_get('private-address'),
+                       nova_username=qutils.NOVA_DB_USER,
+                       nova_database=qutils.NOVA_DB,
+                       nova_hostname=utils.unit_get('private-address'))
 
 
+@utils.inteli_restart(qutils.RESTART_MAP)
 def db_changed():
     render_plugin_conf()
-    utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
+    render_metadata_api_conf()
 
 
-def get_db_conf():
+def get_quantum_db_conf():
     for relid in utils.relation_ids('shared-db'):
         for unit in utils.relation_list(relid):
             conf = {
-                "host": utils.relation_get('private-address',
+                "host": utils.relation_get('db_host',
                                            unit, relid),
                 "user": qutils.DB_USER,
-                "password": utils.relation_get('password',
+                "password": utils.relation_get('quantum_password',
                                                unit, relid),
                 "db": qutils.QUANTUM_DB
+                }
+            if None not in conf.itervalues():
+                return conf
+    return None
+
+
+def get_nova_db_conf():
+    for relid in utils.relation_ids('shared-db'):
+        for unit in utils.relation_list(relid):
+            conf = {
+                "host": utils.relation_get('db_host',
+                                           unit, relid),
+                "user": qutils.NOVA_DB_USER,
+                "password": utils.relation_get('nova_password',
+                                               unit, relid),
+                "db": qutils.NOVA_DB
                 }
             if None not in conf.itervalues():
                 return conf
@@ -137,9 +242,11 @@ def amqp_joined():
                        vhost=qutils.RABBIT_VHOST)
 
 
+@utils.inteli_restart(qutils.RESTART_MAP)
 def amqp_changed():
+    render_dhcp_agent_conf()
     render_quantum_conf()
-    utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
+    render_metadata_api_conf()
 
 
 def get_rabbit_conf():
@@ -153,15 +260,43 @@ def get_rabbit_conf():
                 "rabbit_password": utils.relation_get('password',
                                                       unit, relid)
                 }
+            clustered = utils.relation_get('clustered', unit, relid)
+            if clustered:
+                conf['rabbit_host'] = utils.relation_get('vip', unit, relid)
             if None not in conf.itervalues():
                 return conf
     return None
 
 
+@utils.inteli_restart(qutils.RESTART_MAP)
 def nm_changed():
+    render_dhcp_agent_conf()
     render_l3_agent_conf()
-    utils.restart(*qutils.GATEWAY_AGENTS[PLUGIN])
+    render_metadata_agent_conf()
+    render_metadata_api_conf()
+    render_evacuate_unit()
+    store_ca_cert()
 
+
+def store_ca_cert():
+    ca_cert = get_ca_cert()
+    if ca_cert:
+        qutils.install_ca(ca_cert)
+
+
+def get_ca_cert():
+    for relid in utils.relation_ids('quantum-network-service'):
+        for unit in utils.relation_list(relid):
+            ca_cert = utils.relation_get('ca_cert', unit, relid)
+            if ca_cert:
+                return ca_cert
+    return None
+
+
+def cluster_departed():
+    conf = get_keystone_conf()
+    if conf and cluster.eligible_leader(None):
+        qutils.reassign_agent_resources(conf)
 
 utils.do_hooks({
     "install": install,
@@ -172,6 +307,7 @@ utils.do_hooks({
     "amqp-relation-joined": amqp_joined,
     "amqp-relation-changed": amqp_changed,
     "quantum-network-service-relation-changed": nm_changed,
+    "cluster-relation-departed": cluster_departed
     })
 
 sys.exit(0)

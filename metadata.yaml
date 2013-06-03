@@ -21,3 +21,6 @@ requires:
     interface: mysql-shared
   amqp:
     interface: rabbitmq
+peers:
+  cluster:
+    interface: quantum-gateway-ha
