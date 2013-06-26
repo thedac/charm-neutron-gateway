@@ -7,7 +7,7 @@ options:
       Supported values include:
       .
         ovs - OpenVSwitch
-	nvp - Nicira NVP
+        nvp - Nicira NVP
   ext-port:
     type: string
     description: |
