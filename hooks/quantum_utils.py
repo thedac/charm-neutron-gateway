@@ -40,7 +40,7 @@ GATEWAY_PKGS = {
         "nova-api-metadata"
         ],
     NVP: [
-        "openvswitch-switch"
+        "openvswitch-switch",
         "quantum-dhcp-agent",
         'python-mysqldb',
         "nova-api-metadata"
