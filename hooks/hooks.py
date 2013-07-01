@@ -23,7 +23,7 @@ def install():
         sys.exit(1)
 
 
-@utils.inteli_restart(qutils.RESTART_MAP)
+@utils.inteli_restart(qutils.RESTART_MAP[PLUGIN])
 def config_changed():
     src = utils.config_get('openstack-origin')
     available = openstack.get_os_codename_install_source(src)
@@ -199,7 +199,7 @@ def db_joined():
                        nova_hostname=utils.unit_get('private-address'))
 
 
-@utils.inteli_restart(qutils.RESTART_MAP)
+@utils.inteli_restart(qutils.RESTART_MAP[PLUGIN])
 def db_changed():
     render_plugin_conf()
     render_metadata_api_conf()
@@ -242,7 +242,7 @@ def amqp_joined():
                        vhost=qutils.RABBIT_VHOST)
 
 
-@utils.inteli_restart(qutils.RESTART_MAP)
+@utils.inteli_restart(qutils.RESTART_MAP[PLUGIN])
 def amqp_changed():
     render_dhcp_agent_conf()
     render_quantum_conf()
@@ -268,7 +268,7 @@ def get_rabbit_conf():
     return None
 
 
-@utils.inteli_restart(qutils.RESTART_MAP)
+@utils.inteli_restart(qutils.RESTART_MAP[PLUGIN])
 def nm_changed():
     render_dhcp_agent_conf()
     render_l3_agent_conf()

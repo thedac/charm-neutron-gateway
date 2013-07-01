@@ -89,7 +89,8 @@ DHCP_AGENT_CONF = "/etc/quantum/dhcp_agent.ini"
 METADATA_AGENT_CONF = "/etc/quantum/metadata_agent.ini"
 NOVA_CONF = "/etc/nova/nova.conf"
 
-RESTART_MAP = {
+
+OVS_RESTART_MAP = {
     QUANTUM_CONF: [
         'quantum-l3-agent',
         'quantum-dhcp-agent',
@@ -112,6 +113,29 @@ RESTART_MAP = {
         'nova-api-metadata'
         ]
     }
+
+NVP_RESTART_MAP = {
+    QUANTUM_CONF: [
+        'quantum-dhcp-agent',
+        'quantum-metadata-agent'
+        ],
+    DHCP_AGENT_CONF: [
+        'quantum-dhcp-agent'
+        ],
+    METADATA_AGENT_CONF: [
+        'quantum-metadata-agent'
+        ],
+    NOVA_CONF: [
+        'nova-api-metadata'
+        ]
+    }
+
+
+RESTART_MAP = {
+    OVS: OVS_RESTART_MAP,
+    NVP: NVP_RESTART_MAP
+    }
+
 
 RABBIT_USER = "nova"
 RABBIT_VHOST = "nova"
