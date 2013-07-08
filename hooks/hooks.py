@@ -294,6 +294,11 @@ def get_ca_cert():
 
 
 def cluster_departed():
+    if PLUGIN == 'nvp':
+        utils.juju_log('WARNING',
+                       'Unable to re-assign agent resources'
+                       ' for failed nodes with nvp')
+        return
     conf = get_keystone_conf()
     if conf and cluster.eligible_leader(None):
         qutils.reassign_agent_resources(conf)
