@@ -3,12 +3,16 @@ import os
 import uuid
 import base64
 import apt_pkg as apt
-from lib.utils import (
-    juju_log as log,
-    configure_source,
-    config_get
-    )
-
+from charmhelpers.core.hookenv import (
+    log,
+    config
+)
+from charmhelpers.core.host import (
+    apt_install
+)
+from charmhelpers.contrib.openstack.openstack_utils import (
+    configure_installation_source
+)
 
 OVS = "ovs"
 NVP = "nvp"
@@ -20,7 +24,7 @@ NVP_PLUGIN = \
 CORE_PLUGIN = {
     OVS: OVS_PLUGIN,
     NVP: NVP_PLUGIN
-    }
+}
 
 OVS_PLUGIN_CONF = \
     "/etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini"
@@ -29,7 +33,7 @@ NVP_PLUGIN_CONF = \
 PLUGIN_CONF = {
     OVS: OVS_PLUGIN_CONF,
     NVP: NVP_PLUGIN_CONF
-    }
+}
 
 GATEWAY_PKGS = {
     OVS: [
@@ -38,14 +42,14 @@ GATEWAY_PKGS = {
         "quantum-dhcp-agent",
         'python-mysqldb',
         "nova-api-metadata"
-        ],
+    ],
     NVP: [
         "openvswitch-switch",
         "quantum-dhcp-agent",
         'python-mysqldb',
         "nova-api-metadata"
-        ]
-    }
+    ]
+}
 
 GATEWAY_AGENTS = {
     OVS: [
@@ -53,12 +57,12 @@ GATEWAY_AGENTS = {
         "quantum-l3-agent",
         "quantum-dhcp-agent",
         "nova-api-metadata"
-        ],
+    ],
     NVP: [
         "quantum-dhcp-agent",
         "nova-api-metadata"
-        ],
-    }
+    ],
+}
 
 EXT_PORT_CONF = '/etc/init/ext-port.conf'
 
@@ -96,45 +100,45 @@ OVS_RESTART_MAP = {
         'quantum-dhcp-agent',
         'quantum-metadata-agent',
         'quantum-plugin-openvswitch-agent'
-        ],
+    ],
     DHCP_AGENT_CONF: [
         'quantum-dhcp-agent'
-        ],
+    ],
     L3_AGENT_CONF: [
         'quantum-l3-agent'
-        ],
+    ],
     METADATA_AGENT_CONF: [
         'quantum-metadata-agent'
-        ],
+    ],
     OVS_PLUGIN_CONF: [
         'quantum-plugin-openvswitch-agent'
-        ],
+    ],
     NOVA_CONF: [
         'nova-api-metadata'
-        ]
-    }
+    ]
+}
 
 NVP_RESTART_MAP = {
     QUANTUM_CONF: [
         'quantum-dhcp-agent',
         'quantum-metadata-agent'
-        ],
+    ],
     DHCP_AGENT_CONF: [
         'quantum-dhcp-agent'
-        ],
+    ],
     METADATA_AGENT_CONF: [
         'quantum-metadata-agent'
-        ],
+    ],
     NOVA_CONF: [
         'nova-api-metadata'
-        ]
-    }
+    ]
+}
 
 
 RESTART_MAP = {
     OVS: OVS_RESTART_MAP,
     NVP: NVP_RESTART_MAP
-    }
+}
 
 
 RABBIT_USER = "nova"
@@ -142,41 +146,6 @@ RABBIT_VHOST = "nova"
 
 INT_BRIDGE = "br-int"
 EXT_BRIDGE = "br-ex"
-
-
-def add_bridge(name):
-    status = subprocess.check_output(["ovs-vsctl", "show"])
-    if "Bridge {}".format(name) not in status:
-        log('INFO', 'Creating bridge {}'.format(name))
-        subprocess.check_call(["ovs-vsctl", "add-br", name])
-
-
-def del_bridge(name):
-    status = subprocess.check_output(["ovs-vsctl", "show"])
-    if "Bridge {}".format(name) in status:
-        log('INFO', 'Deleting bridge {}'.format(name))
-        subprocess.check_call(["ovs-vsctl", "del-br", name])
-
-
-def add_bridge_port(name, port):
-    status = subprocess.check_output(["ovs-vsctl", "show"])
-    if ("Bridge {}".format(name) in status and
-        "Interface \"{}\"".format(port) not in status):
-        log('INFO',
-            'Adding port {} to bridge {}'.format(port, name))
-        subprocess.check_call(["ovs-vsctl", "add-port", name, port])
-        subprocess.check_call(["ip", "link", "set", port, "up"])
-
-
-def del_bridge_port(name, port):
-    status = subprocess.check_output(["ovs-vsctl", "show"])
-    if ("Bridge {}".format(name) in status and
-        "Interface \"{}\"".format(port) in status):
-        log('INFO',
-            'Deleting port {} from bridge {}'.format(port, name))
-        subprocess.check_call(["ovs-vsctl", "del-port", name, port])
-        subprocess.check_call(["ip", "link", "set", port, "down"])
-
 
 SHARED_SECRET = "/etc/quantum/secret.txt"
 
@@ -198,11 +167,11 @@ def flush_local_configuration():
         cmd = [
             "quantum-netns-cleanup",
             "--config-file=/etc/quantum/quantum.conf"
-            ]
+        ]
         for agent_conf in ['l3_agent.ini', 'dhcp_agent.ini']:
             agent_cmd = list(cmd)
-            agent_cmd.append('--config-file=/etc/quantum/{}'\
-                                .format(agent_conf))
+            agent_cmd.append('--config-file=/etc/quantum/{}'
+                             .format(agent_conf))
             subprocess.call(agent_cmd)
 
 
@@ -233,7 +202,7 @@ def reassign_agent_resources(env):
     networks = {}
     for agent in agents['agents']:
         if not agent['alive']:
-            log('INFO', 'DHCP Agent %s down' % agent['id'])
+            log('DHCP Agent %s down' % agent['id'])
             for network in \
                 quantum.list_networks_on_dhcp_agent(agent['id'])['networks']:
                 networks[network['id']] = agent['id']
@@ -244,7 +213,7 @@ def reassign_agent_resources(env):
     routers = {}
     for agent in agents['agents']:
         if not agent['alive']:
-            log('INFO', 'L3 Agent %s down' % agent['id'])
+            log('L3 Agent %s down' % agent['id'])
             for router in \
                 quantum.list_routers_on_l3_agent(agent['id'])['routers']:
                 routers[router['id']] = agent['id']
@@ -254,8 +223,7 @@ def reassign_agent_resources(env):
     index = 0
     for router_id in routers:
         agent = index % len(l3_agents)
-        log('INFO',
-            'Moving router %s from %s to %s' % \
+        log('Moving router %s from %s to %s' %
             (router_id, routers[router_id], l3_agents[agent]))
         quantum.remove_router_from_l3_agent(l3_agent=routers[router_id],
                                             router_id=router_id)
@@ -266,8 +234,7 @@ def reassign_agent_resources(env):
     index = 0
     for network_id in networks:
         agent = index % len(dhcp_agents)
-        log('INFO',
-            'Moving network %s from %s to %s' % \
+        log('Moving network %s from %s to %s' %
             (network_id, networks[network_id], dhcp_agents[agent]))
         quantum.remove_network_from_dhcp_agent(dhcp_agent=networks[network_id],
                                                network_id=network_id)
@@ -275,16 +242,17 @@ def reassign_agent_resources(env):
                                           body={'network_id': network_id})
         index += 1
 
+
 def do_openstack_upgrade():
-    configure_source()
-    plugin = config_get('plugin')
+    configure_installation_source(config('openstack-origin'))
+    plugin = config('plugin')
     pkgs = []
     if plugin in GATEWAY_PKGS.keys():
-        pkgs += GATEWAY_PKGS[plugin]
-        if plugin == OVS:
+        pkgs.extend(GATEWAY_PKGS[plugin])
+        if plugin in [OVS, NVP]:
             pkgs.append('openvswitch-datapath-dkms')
-    cmd = ['apt-get', '-y',
-           '--option', 'Dpkg::Options::=--force-confold',
-           '--option', 'Dpkg::Options::=--force-confdef',
-           'install'] + pkgs
-    subprocess.check_call(cmd)
+    dpkg_opts = [
+        '--option', 'Dpkg::Options::=--force-confold',
+        '--option', 'Dpkg::Options::=--force-confdef'
+    ]
+    apt_install(pkgs, options=dpkg_opts, fatal=True)
