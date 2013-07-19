@@ -64,3 +64,26 @@ class QuantumGatewayContext(OSContextGenerator):
             'plugin': config('plugin')
         }
         return ctxt
+
+
+class QuantumSharedDBContext(OSContextGenerator):
+    interfaces = ['shared-db']
+
+    def __call__(self):
+        for rid in relation_ids('shared-db'):
+            for unit in related_units(rid):
+                ctxt = {
+                    'database_host': relation_get('db_host', rid=rid,
+                                                  unit=unit),
+                    'quantum_database': qutils.QUANTUM_DB,
+                    'quantum_user': qutils.DB_USER,
+                    'quantum_password': relation_get('quantum_password',
+                                                     rid=rid, unit=unit),
+                    'nova_database': qutils.NOVA_DB,
+                    'nova_user': qutils.NOVA_DB_USER,
+                    'nova_password': relation_get('nova_password', rid=rid,
+                                                  unit=unit)
+                }
+                if context_complete(ctxt):
+                    return ctxt
+        return {}

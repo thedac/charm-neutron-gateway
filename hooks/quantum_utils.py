@@ -103,7 +103,7 @@ SHARED_CONFIG_FILES = {
     },
     NOVA_CONF: {
         'hook_contexts': [context.AMQPContext(),
-                          context.SharedDBContext(),
+                          quantum_contexts.QuantumSharedDBContext(),
                           quantum_contexts.NetworkServiceContext(),
                           quantum_contexts.QuantumGatewayContext()],
         'services': ['nova-api-metadata']
@@ -125,7 +125,7 @@ OVS_CONFIG_FILES = {
     },
     # TODO: Check to see if this is actually required
     OVS_PLUGIN_CONF: {
-        'hook_contexts': [context.SharedDBContext(),
+        'hook_contexts': [quantum_contexts.QuantumSharedDBContext(),
                           quantum_contexts.QuantumGatewayContext()],
         'services': ['quantum-plugin-openvswitch-agent']
     },
