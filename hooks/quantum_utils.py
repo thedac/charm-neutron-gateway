@@ -134,6 +134,7 @@ OVS_CONFIG_FILES = {
         'services': []
     }
 }
+OVS_CONFIG_FILES.update(SHARED_CONFIG_FILES)
 
 NVP_CONFIG_FILES = {
     QUANTUM_CONF: {
@@ -141,10 +142,11 @@ NVP_CONFIG_FILES = {
         'services': ['quantum-dhcp-agent', 'quantum-metadata-agent']
     },
 }
+NVP_CONFIG_FILES.update(SHARED_CONFIG_FILES)
 
 CONFIG_FILES = {
-    NVP: NVP_CONFIG_FILES.update(SHARED_CONFIG_FILES),
-    OVS: OVS_CONFIG_FILES.update(SHARED_CONFIG_FILES),
+    NVP: NVP_CONFIG_FILES,
+    OVS: OVS_CONFIG_FILES,
 }
 
 
@@ -156,10 +158,6 @@ def register_configs():
                                           openstack_release=release)
 
     plugin = config('plugin')
-    if not plugin:
-        # Plugin not yet set - don't do anything else
-        return configs
-
     for conf in CONFIG_FILES[plugin]:
         configs.register(conf, CONFIG_FILES[conf]['hook_contexts'])
 
