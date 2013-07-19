@@ -90,8 +90,8 @@ def db_joined():
 
 @hooks.hook('amqp-relation-joined')
 def amqp_joined():
-    relation_set(username=RABBIT_USER,
-                 vhost=RABBIT_VHOST)
+    relation_set(username=config('rabbit-user'),
+                 vhost=config('rabbit-vhost'))
 
 
 @hooks.hook('shared-db-relation-changed',

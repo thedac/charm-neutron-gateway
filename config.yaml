@@ -23,3 +23,10 @@ options:
         - cloud:precise-folsom/proposed
         - cloud:precise-folsom
         - deb http://my.archive.com/ubuntu main|KEYID
+  rabbit-user:
+    type: string
+    default: nova
+  rabbit-vhost:
+    type: string
+    default: nova
+
