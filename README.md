@@ -1,4 +1,4 @@
-Overview
+
 --------
 
 Quantum provides flexible software defined networking (SDN) for OpenStack.
@@ -54,5 +54,3 @@ TODO
 
  * Provide more network configuration use cases.
  * Support VLAN in addition to GRE+OpenFlow for L2 separation.
- * High Avaliability.
- * Support for propriety plugins for Quantum.
