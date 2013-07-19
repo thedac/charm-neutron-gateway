@@ -156,7 +156,7 @@ def register_configs():
                                           openstack_release=release)
 
     plugin = config('plugin')
-    for conf in CONFIG_FILES[plugin].keys():
+    for conf in CONFIG_FILES[plugin]:
         configs.register(conf, CONFIG_FILES[conf]['hook_contexts'])
 
     return configs
