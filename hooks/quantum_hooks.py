@@ -33,8 +33,6 @@ from quantum_utils import (
     get_packages,
     get_early_packages,
     valid_plugin,
-    RABBIT_USER,
-    RABBIT_VHOST,
     DB_USER, QUANTUM_DB,
     NOVA_DB_USER, NOVA_DB,
     configure_ovs,
