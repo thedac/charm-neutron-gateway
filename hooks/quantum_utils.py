@@ -159,7 +159,7 @@ def register_configs():
 
     plugin = config('plugin')
     for conf in CONFIG_FILES[plugin]:
-        configs.register(conf, CONFIG_FILES[conf]['hook_contexts'])
+        configs.register(conf, CONFIG_FILES[plugin][conf]['hook_contexts'])
 
     return configs
 
