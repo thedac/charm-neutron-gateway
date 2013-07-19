@@ -156,6 +156,10 @@ def register_configs():
                                           openstack_release=release)
 
     plugin = config('plugin')
+    if not plugin:
+        # Plugin not yet set - don't do anything else
+        return configs
+
     for conf in CONFIG_FILES[plugin]:
         configs.register(conf, CONFIG_FILES[conf]['hook_contexts'])
 
