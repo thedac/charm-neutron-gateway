@@ -1,18 +1,29 @@
-import subprocess
 import os
 import uuid
-import base64
-import apt_pkg as apt
+import socket
 from charmhelpers.core.hookenv import (
     log,
-    config
+    config,
+    unit_get,
+    cached
 )
 from charmhelpers.core.host import (
-    apt_install
+    apt_install,
+    apt_update
 )
-from charmhelpers.contrib.openstack.openstack_utils import (
-    configure_installation_source
+from charmhelpers.contrib.network.ovs import (
+    add_bridge,
+    add_bridge_port
 )
+from charmhelpers.contrib.openstack.utils import (
+    configure_installation_source,
+    get_os_codename_package,
+    get_os_codename_install_source
+)
+import charmhelpers.contrib.openstack.context as context
+import charmhelpers.contrib.openstack.templating as templating
+import quantum_contexts
+from collections import OrderedDict
 
 OVS = "ovs"
 NVP = "nvp"
@@ -25,6 +36,10 @@ CORE_PLUGIN = {
     OVS: OVS_PLUGIN,
     NVP: NVP_PLUGIN
 }
+
+
+def valid_plugin():
+    return config('plugin') in CORE_PLUGIN
 
 OVS_PLUGIN_CONF = \
     "/etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini"
@@ -51,41 +66,25 @@ GATEWAY_PKGS = {
     ]
 }
 
-GATEWAY_AGENTS = {
-    OVS: [
-        "quantum-plugin-openvswitch-agent",
-        "quantum-l3-agent",
-        "quantum-dhcp-agent",
-        "nova-api-metadata"
-    ],
-    NVP: [
-        "quantum-dhcp-agent",
-        "nova-api-metadata"
-    ],
+EARLY_PACKAGES = {
+    OVS: ['openvswitch-datapath-dkms']
 }
 
-EXT_PORT_CONF = '/etc/init/ext-port.conf'
 
-
-def get_os_version(package=None):
-    apt.init()
-    cache = apt.Cache()
-    pkg = cache[package or 'quantum-common']
-    if pkg.current_ver:
-        return apt.upstream_version(pkg.current_ver.ver_str)
+def get_early_packages():
+    '''Return a list of package for pre-install based on configured plugin'''
+    if config('plugin') in EARLY_PACKAGES:
+        return EARLY_PACKAGES[config('plugin')]
     else:
-        return None
+        return []
 
 
-if get_os_version('quantum-common') >= "2013.1":
-    for plugin in GATEWAY_AGENTS:
-        GATEWAY_AGENTS[plugin].append("quantum-metadata-agent")
+def get_packages():
+    '''Return a list of packages for install based on the configured plugin'''
+    return GATEWAY_PKGS[config('plugin')]
 
-DB_USER = "quantum"
-QUANTUM_DB = "quantum"
-KEYSTONE_SERVICE = "quantum"
-NOVA_DB_USER = "nova"
-NOVA_DB = "nova"
+EXT_PORT_CONF = '/etc/init/ext-port.conf'
+TEMPLATES = 'templates'
 
 QUANTUM_CONF = "/etc/quantum/quantum.conf"
 L3_AGENT_CONF = "/etc/quantum/l3_agent.ini"
@@ -93,53 +92,99 @@ DHCP_AGENT_CONF = "/etc/quantum/dhcp_agent.ini"
 METADATA_AGENT_CONF = "/etc/quantum/metadata_agent.ini"
 NOVA_CONF = "/etc/nova/nova.conf"
 
-
-OVS_RESTART_MAP = {
-    QUANTUM_CONF: [
-        'quantum-l3-agent',
-        'quantum-dhcp-agent',
-        'quantum-metadata-agent',
-        'quantum-plugin-openvswitch-agent'
-    ],
-    DHCP_AGENT_CONF: [
-        'quantum-dhcp-agent'
-    ],
-    L3_AGENT_CONF: [
-        'quantum-l3-agent'
-    ],
-    METADATA_AGENT_CONF: [
-        'quantum-metadata-agent'
-    ],
-    OVS_PLUGIN_CONF: [
-        'quantum-plugin-openvswitch-agent'
-    ],
-    NOVA_CONF: [
-        'nova-api-metadata'
-    ]
+SHARED_CONFIG_FILES = {
+    DHCP_AGENT_CONF: {
+        'hook_contexts': [quantum_contexts.QuantumGatewayContext()],
+        'services': ['quantum-dhcp-agent']
+    },
+    METADATA_AGENT_CONF: {
+        'hook_contexts': [quantum_contexts.NetworkServiceContext()],
+        'services': ['quantum-metadata-agent']
+    },
+    NOVA_CONF: {
+        'hook_contexts': [context.AMQPContext(),
+                          context.SharedDBContext(),
+                          quantum_contexts.NetworkServiceContext(),
+                          quantum_contexts.QuantumGatewayContext()],
+        'services': ['nova-api-metadata']
+    },
 }
 
-NVP_RESTART_MAP = {
-    QUANTUM_CONF: [
-        'quantum-dhcp-agent',
-        'quantum-metadata-agent'
-    ],
-    DHCP_AGENT_CONF: [
-        'quantum-dhcp-agent'
-    ],
-    METADATA_AGENT_CONF: [
-        'quantum-metadata-agent'
-    ],
-    NOVA_CONF: [
-        'nova-api-metadata'
-    ]
+OVS_CONFIG_FILES = {
+    QUANTUM_CONF: {
+        'hook_contexts': [context.AMQPContext(),
+                          quantum_contexts.QuantumGatewayContext()],
+        'services': ['quantum-l3-agent',
+                     'quantum-dhcp-agent',
+                     'quantum-metadata-agent',
+                     'quantum-plugin-openvswitch-agent']
+    },
+    L3_AGENT_CONF: {
+        'hook_contexts': [quantum_contexts.NetworkServiceContext()],
+        'services': ['quantum-l3-agent']
+    },
+    # TODO: Check to see if this is actually required
+    OVS_PLUGIN_CONF: {
+        'hook_contexts': [context.SharedDBContext(),
+                          quantum_contexts.QuantumGatewayContext()],
+        'services': ['quantum-plugin-openvswitch-agent']
+    },
+    EXT_PORT_CONF: {
+        'hook_contexts': [quantum_contexts.ExternalPortContext()],
+        'services': []
+    }
+}
+
+NVP_CONFIG_FILES = {
+    QUANTUM_CONF: {
+        'hook_contexts': [context.AMQPContext()],
+        'services': ['quantum-dhcp-agent', 'quantum-metadata-agent']
+    },
+}
+
+CONFIG_FILES = {
+    NVP: NVP_CONFIG_FILES.update(SHARED_CONFIG_FILES),
+    OVS: OVS_CONFIG_FILES.update(SHARED_CONFIG_FILES),
 }
 
 
-RESTART_MAP = {
-    OVS: OVS_RESTART_MAP,
-    NVP: NVP_RESTART_MAP
-}
+def register_configs():
+    ''' Register config files with their respective contexts. '''
+    release = get_os_codename_package('quantum-common', fatal=False) or \
+        'essex'
+    configs = templating.OSConfigRenderer(templates_dir=TEMPLATES,
+                                          openstack_release=release)
 
+    plugin = config('plugin')
+    for conf in CONFIG_FILES[plugin].keys():
+        configs.register(conf, CONFIG_FILES[conf]['hook_contexts'])
+
+    return configs
+
+
+def restart_map():
+    '''
+    Determine the correct resource map to be passed to
+    charmhelpers.core.restart_on_change() based on the services configured.
+
+    :returns: dict: A dictionary mapping config file to lists of services
+                    that should be restarted when file changes.
+    '''
+    _map = []
+    for f, ctxt in CONFIG_FILES[config('plugin')].iteritems():
+        svcs = []
+        for svc in ctxt['services']:
+            svcs.append(svc)
+        if svcs:
+            _map.append((f, svcs))
+    return OrderedDict(_map)
+
+
+DB_USER = "quantum"
+QUANTUM_DB = "quantum"
+KEYSTONE_SERVICE = "quantum"
+NOVA_DB_USER = "nova"
+NOVA_DB = "nova"
 
 RABBIT_USER = "nova"
 RABBIT_VHOST = "nova"
@@ -161,33 +206,22 @@ def get_shared_secret():
             secret = secret_file.read().strip()
     return secret
 
-
-def flush_local_configuration():
-    if os.path.exists('/usr/bin/quantum-netns-cleanup'):
-        cmd = [
-            "quantum-netns-cleanup",
-            "--config-file=/etc/quantum/quantum.conf"
-        ]
-        for agent_conf in ['l3_agent.ini', 'dhcp_agent.ini']:
-            agent_cmd = list(cmd)
-            agent_cmd.append('--config-file=/etc/quantum/{}'
-                             .format(agent_conf))
-            subprocess.call(agent_cmd)
-
-
-def install_ca(ca_cert):
-    with open('/usr/local/share/ca-certificates/keystone_juju_ca_cert.crt',
-              'w') as crt:
-        crt.write(base64.b64decode(ca_cert))
-    subprocess.check_call(['update-ca-certificates', '--fresh'])
-
 DHCP_AGENT = "DHCP Agent"
 L3_AGENT = "L3 Agent"
 
 
-def reassign_agent_resources(env):
+def reassign_agent_resources():
     ''' Use agent scheduler API to detect down agents and re-schedule '''
-    from quantumclient.v2_0 import client
+    env = quantum_contexts.NetworkServiceContext()()
+    if not env:
+        log('Unable to re-assign resources at this time')
+        return
+    try:
+        from quantumclient.v2_0 import client
+    except ImportError:
+        ''' Try to import neutronclient instead for havana+ '''
+        from neutronclient.v2_0 import client
+
     # TODO: Fixup for https keystone
     auth_url = 'http://%(keystone_host)s:%(auth_port)s/v2.0' % env
     quantum = client.Client(username=env['service_username'],
@@ -243,16 +277,56 @@ def reassign_agent_resources(env):
         index += 1
 
 
-def do_openstack_upgrade():
-    configure_installation_source(config('openstack-origin'))
-    plugin = config('plugin')
-    pkgs = []
-    if plugin in GATEWAY_PKGS.keys():
-        pkgs.extend(GATEWAY_PKGS[plugin])
-        if plugin in [OVS, NVP]:
-            pkgs.append('openvswitch-datapath-dkms')
+def do_openstack_upgrade(configs):
+    """
+    Perform an upgrade.  Takes care of upgrading packages, rewriting
+    configs, database migrations and potentially any other post-upgrade
+    actions.
+
+    :param configs: The charms main OSConfigRenderer object.
+    """
+    new_src = config('openstack-origin')
+    new_os_rel = get_os_codename_install_source(new_src)
+
+    log('Performing OpenStack upgrade to %s.' % (new_os_rel))
+
+    configure_installation_source(new_src)
     dpkg_opts = [
-        '--option', 'Dpkg::Options::=--force-confold',
-        '--option', 'Dpkg::Options::=--force-confdef'
+        '--option', 'Dpkg::Options::=--force-confnew',
+        '--option', 'Dpkg::Options::=--force-confdef',
     ]
-    apt_install(pkgs, options=dpkg_opts, fatal=True)
+    apt_update(fatal=True)
+    apt_install(packages=GATEWAY_PKGS[config('plugin')], options=dpkg_opts,
+                fatal=True)
+
+    # set CONFIGS to load templates from new release
+    configs.set_release(openstack_release=new_os_rel)
+
+
+@cached
+def get_host_ip(hostname=None):
+    try:
+        import dns.resolver
+    except ImportError:
+        apt_install('python-dnspython', fatal=True)
+        import dns.resolver
+    hostname = hostname or unit_get('private-address')
+    try:
+        # Test to see if already an IPv4 address
+        socket.inet_aton(hostname)
+        return hostname
+    except socket.error:
+        answers = dns.resolver.query(hostname, 'A')
+        if answers:
+            return answers[0].address
+
+
+def configure_ovs():
+    if config('plugin') == OVS:
+        add_bridge(INT_BRIDGE)
+        add_bridge(EXT_BRIDGE)
+        ext_port = config('ext-port')
+        if ext_port:
+            add_bridge_port(EXT_BRIDGE, ext_port)
+    if config('plugin') == NVP:
+        add_bridge(INT_BRIDGE)
