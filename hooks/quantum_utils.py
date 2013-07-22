@@ -1,11 +1,6 @@
-import os
-import uuid
-import socket
 from charmhelpers.core.hookenv import (
     log,
     config,
-    unit_get,
-    cached
 )
 from charmhelpers.core.host import (
     apt_install,
@@ -22,23 +17,19 @@ from charmhelpers.contrib.openstack.utils import (
 )
 import charmhelpers.contrib.openstack.context as context
 import charmhelpers.contrib.openstack.templating as templating
-import quantum_contexts
+from quantum_contexts import (
+    CORE_PLUGIN,
+    OVS, NVP,
+    QuantumGatewayContext,
+    NetworkServiceContext,
+    QuantumSharedDBContext,
+    ExternalPortContext,
+)
 from collections import OrderedDict
-
-OVS = "ovs"
-NVP = "nvp"
-
-OVS_PLUGIN = \
-    "quantum.plugins.openvswitch.ovs_quantum_plugin.OVSQuantumPluginV2"
-NVP_PLUGIN = \
-    "quantum.plugins.nicira.nicira_nvp_plugin.QuantumPlugin.NvpPluginV2"
-CORE_PLUGIN = {
-    OVS: OVS_PLUGIN,
-    NVP: NVP_PLUGIN
-}
 
 
 def valid_plugin():
+    print config('plugin')
     return config('plugin') in CORE_PLUGIN
 
 OVS_PLUGIN_CONF = \
@@ -94,18 +85,18 @@ NOVA_CONF = "/etc/nova/nova.conf"
 
 SHARED_CONFIG_FILES = {
     DHCP_AGENT_CONF: {
-        'hook_contexts': [quantum_contexts.QuantumGatewayContext()],
+        'hook_contexts': [QuantumGatewayContext()],
         'services': ['quantum-dhcp-agent']
     },
     METADATA_AGENT_CONF: {
-        'hook_contexts': [quantum_contexts.NetworkServiceContext()],
+        'hook_contexts': [NetworkServiceContext()],
         'services': ['quantum-metadata-agent']
     },
     NOVA_CONF: {
         'hook_contexts': [context.AMQPContext(),
-                          quantum_contexts.QuantumSharedDBContext(),
-                          quantum_contexts.NetworkServiceContext(),
-                          quantum_contexts.QuantumGatewayContext()],
+                          QuantumSharedDBContext(),
+                          NetworkServiceContext(),
+                          QuantumGatewayContext()],
         'services': ['nova-api-metadata']
     },
 }
@@ -113,24 +104,24 @@ SHARED_CONFIG_FILES = {
 OVS_CONFIG_FILES = {
     QUANTUM_CONF: {
         'hook_contexts': [context.AMQPContext(),
-                          quantum_contexts.QuantumGatewayContext()],
+                          QuantumGatewayContext()],
         'services': ['quantum-l3-agent',
                      'quantum-dhcp-agent',
                      'quantum-metadata-agent',
                      'quantum-plugin-openvswitch-agent']
     },
     L3_AGENT_CONF: {
-        'hook_contexts': [quantum_contexts.NetworkServiceContext()],
+        'hook_contexts': [NetworkServiceContext()],
         'services': ['quantum-l3-agent']
     },
     # TODO: Check to see if this is actually required
     OVS_PLUGIN_CONF: {
-        'hook_contexts': [quantum_contexts.QuantumSharedDBContext(),
-                          quantum_contexts.QuantumGatewayContext()],
+        'hook_contexts': [QuantumSharedDBContext(),
+                          QuantumGatewayContext()],
         'services': ['quantum-plugin-openvswitch-agent']
     },
     EXT_PORT_CONF: {
-        'hook_contexts': [quantum_contexts.ExternalPortContext()],
+        'hook_contexts': [ExternalPortContext()],
         'services': []
     }
 }
@@ -182,31 +173,8 @@ def restart_map():
     return OrderedDict(_map)
 
 
-DB_USER = "quantum"
-QUANTUM_DB = "quantum"
-KEYSTONE_SERVICE = "quantum"
-NOVA_DB_USER = "nova"
-NOVA_DB = "nova"
-
-RABBIT_USER = "nova"
-RABBIT_VHOST = "nova"
-
 INT_BRIDGE = "br-int"
 EXT_BRIDGE = "br-ex"
-
-SHARED_SECRET = "/etc/quantum/secret.txt"
-
-
-def get_shared_secret():
-    secret = None
-    if not os.path.exists(SHARED_SECRET):
-        secret = str(uuid.uuid4())
-        with open(SHARED_SECRET, 'w') as secret_file:
-            secret_file.write(secret)
-    else:
-        with open(SHARED_SECRET, 'r') as secret_file:
-            secret = secret_file.read().strip()
-    return secret
 
 DHCP_AGENT = "DHCP Agent"
 L3_AGENT = "L3 Agent"
@@ -214,7 +182,7 @@ L3_AGENT = "L3 Agent"
 
 def reassign_agent_resources():
     ''' Use agent scheduler API to detect down agents and re-schedule '''
-    env = quantum_contexts.NetworkServiceContext()()
+    env = NetworkServiceContext()()
     if not env:
         log('Unable to re-assign resources at this time')
         return
@@ -303,24 +271,6 @@ def do_openstack_upgrade(configs):
 
     # set CONFIGS to load templates from new release
     configs.set_release(openstack_release=new_os_rel)
-
-
-@cached
-def get_host_ip(hostname=None):
-    try:
-        import dns.resolver
-    except ImportError:
-        apt_install('python-dnspython', fatal=True)
-        import dns.resolver
-    hostname = hostname or unit_get('private-address')
-    try:
-        # Test to see if already an IPv4 address
-        socket.inet_aton(hostname)
-        return hostname
-    except socket.error:
-        answers = dns.resolver.query(hostname, 'A')
-        if answers:
-            return answers[0].address
 
 
 def configure_ovs():

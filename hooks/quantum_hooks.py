@@ -33,10 +33,12 @@ from quantum_utils import (
     get_packages,
     get_early_packages,
     valid_plugin,
-    DB_USER, QUANTUM_DB,
-    NOVA_DB_USER, NOVA_DB,
     configure_ovs,
     reassign_agent_resources,
+)
+from quantum_contexts import (
+    DB_USER, QUANTUM_DB,
+    NOVA_DB_USER, NOVA_DB,
 )
 
 hooks = Hooks()
