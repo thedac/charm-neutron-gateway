@@ -8,7 +8,6 @@ import quantum_hooks as hooks
 utils.register_configs = _register_configs
 utils.restart_map = _restart_map
 
-from charmhelpers.contrib.hahelpers.cluster import HAIncompleteConfig
 from test_utils import CharmTestCase
 
 
