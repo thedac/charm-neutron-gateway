@@ -8,10 +8,12 @@ from charmhelpers.core.hookenv import (
     unit_get,
     Hooks, UnregisteredHookError
 )
-from charmhelpers.core.host import (
+from charmhelpers.fetch import (
     apt_update,
     apt_install,
     filter_installed_packages,
+)
+from charmhelpers.core.host import (
     restart_on_change
 )
 from charmhelpers.contrib.hahelpers.cluster import(

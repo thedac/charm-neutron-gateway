@@ -2,7 +2,7 @@ from charmhelpers.core.hookenv import (
     log,
     config,
 )
-from charmhelpers.core.host import (
+from charmhelpers.fetch import (
     apt_install,
     apt_update
 )

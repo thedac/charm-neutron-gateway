@@ -10,7 +10,7 @@ from charmhelpers.core.hookenv import (
     unit_get,
     cached,
 )
-from charmhelpers.core.host import (
+from charmhelpers.fetch import (
     apt_install,
 )
 from charmhelpers.contrib.openstack.context import (
