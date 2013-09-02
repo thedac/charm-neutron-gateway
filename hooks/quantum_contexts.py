@@ -108,7 +108,6 @@ class QuantumSharedDBContext(OSContextGenerator):
                     'nova_password': relation_get('nova_password', rid=rid,
                                                   unit=unit)
                 }
-                print ctxt
                 if context_complete(ctxt):
                     return ctxt
         return {}
