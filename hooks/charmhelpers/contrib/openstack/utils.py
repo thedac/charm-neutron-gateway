@@ -257,7 +257,7 @@ def save_script_rc(script_path="scripts/scriptrc", **env_vars):
          for u, p in env_vars.iteritems() if u != "script_path"]
 
 
-def openstack_upgrade_available():
+def openstack_upgrade_available(package):
     """
     Determines if an OpenStack upgrade is available from installation
     source, based on version of installed package.
@@ -270,7 +270,6 @@ def openstack_upgrade_available():
     """
 
     src = config('openstack-origin')
-    package = "{}-common".format(networking_name())
     cur_vers = get_os_version_package(package)
     available_vers = get_os_version_install_source(src)
     apt.init()
