@@ -1,7 +1,6 @@
 from charmhelpers.core.hookenv import (
     log,
     config,
-    cached,
 )
 from charmhelpers.fetch import (
     apt_install,
@@ -19,23 +18,13 @@ import charmhelpers.contrib.openstack.context as context
 import charmhelpers.contrib.openstack.templating as templating
 from quantum_contexts import (
     CORE_PLUGIN, OVS, NVP,
+    NEUTRON, QUANTUM,
+    networking_name,
     QuantumGatewayContext,
     NetworkServiceContext,
     QuantumSharedDBContext,
     ExternalPortContext,
 )
-
-NEUTRON = 'neutron'
-QUANTUM = 'quantum'
-
-
-@cached
-def networking_name():
-    ''' Determine whether neutron or quantum should be used for name '''
-    if get_os_codename_install_source(config('openstack-origin')) >= 'havana':
-        return NEUTRON
-    else:
-        return QUANTUM
 
 
 def valid_plugin():

@@ -2,7 +2,6 @@ from mock import MagicMock, call
 import charmhelpers.contrib.openstack.templating as templating
 templating.OSConfigRenderer = MagicMock()
 import quantum_utils
-from collections import OrderedDict
 
 from test_utils import (
     CharmTestCase
@@ -18,13 +17,15 @@ TO_PATCH = [
     'configure_installation_source',
     'log',
     'add_bridge',
-    'add_bridge_port'
+    'add_bridge_port',
+    'networking_name'
 ]
 
 
 class TestQuantumUtils(CharmTestCase):
     def setUp(self):
         super(TestQuantumUtils, self).setUp(quantum_utils, TO_PATCH)
+        self.networking_name.return_value = 'neutron'
 
     def tearDown(self):
         # Reset cached cache
@@ -95,7 +96,6 @@ class TestQuantumUtils(CharmTestCase):
 
     def test_register_configs_ovs(self):
         self.config.return_value = 'ovs'
-        self.get_os_codename_install_source.return_value = 'havana'
         configs = quantum_utils.register_configs()
         confs = [quantum_utils.NEUTRON_DHCP_AGENT_CONF,
                  quantum_utils.NEUTRON_METADATA_AGENT_CONF,
@@ -114,7 +114,6 @@ class TestQuantumUtils(CharmTestCase):
 
     def test_restart_map_ovs(self):
         self.config.return_value = 'ovs'
-        self.get_os_codename_install_source.return_value = 'havana'
         ex_map = {
             quantum_utils.NEUTRON_L3_AGENT_CONF: ['neutron-l3-agent'],
             quantum_utils.NEUTRON_OVS_PLUGIN_CONF:
@@ -132,7 +131,6 @@ class TestQuantumUtils(CharmTestCase):
 
     def test_register_configs_nvp(self):
         self.config.return_value = 'nvp'
-        self.get_os_codename_install_source.return_value = 'havana'
         configs = quantum_utils.register_configs()
         confs = [quantum_utils.NEUTRON_DHCP_AGENT_CONF,
                  quantum_utils.NEUTRON_METADATA_AGENT_CONF,
@@ -147,7 +145,6 @@ class TestQuantumUtils(CharmTestCase):
 
     def test_restart_map_nvp(self):
         self.config.return_value = 'nvp'
-        self.get_os_codename_install_source.return_value = 'havana'
         ex_map = {
             quantum_utils.NEUTRON_DHCP_AGENT_CONF: ['neutron-dhcp-agent'],
             quantum_utils.NOVA_CONF: ['nova-api-metadata'],
@@ -160,7 +157,7 @@ class TestQuantumUtils(CharmTestCase):
 
     def test_register_configs_pre_install(self):
         self.config.return_value = 'ovs'
-        self.get_os_codename_install_source.return_value = 'folsom'
+        self.networking_name.return_value = 'quantum'
         configs = quantum_utils.register_configs()
         confs = [quantum_utils.QUANTUM_DHCP_AGENT_CONF,
                  quantum_utils.QUANTUM_METADATA_AGENT_CONF,
