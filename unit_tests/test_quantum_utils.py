@@ -12,6 +12,7 @@ import charmhelpers.core.hookenv as hookenv
 TO_PATCH = [
     'config',
     'get_os_codename_install_source',
+    'get_os_codename_package',
     'apt_update',
     'apt_install',
     'configure_installation_source',
@@ -173,3 +174,11 @@ class TestQuantumUtils(CharmTestCase):
                 quantum_utils.CONFIG_FILES['quantum'][quantum_utils.OVS][conf]
                                           ['hook_contexts']
             )
+
+    def test_get_common_package_quantum(self):
+        self.get_os_codename_package.return_value = 'folsom'
+        self.assertEquals(quantum_utils.get_common_package(), 'quantum-common')
+
+    def test_get_common_package_neutron(self):
+        self.get_os_codename_package.return_value = None
+        self.assertEquals(quantum_utils.get_common_package(), 'neutron-common')
