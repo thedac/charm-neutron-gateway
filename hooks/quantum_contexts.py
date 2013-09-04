@@ -38,7 +38,6 @@ NEUTRON = 'neutron'
 QUANTUM = 'quantum'
 
 
-@cached
 def networking_name():
     ''' Determine whether neutron or quantum should be used for name '''
     if get_os_codename_install_source(config('openstack-origin')) >= 'havana':

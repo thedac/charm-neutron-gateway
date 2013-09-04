@@ -64,7 +64,7 @@ def install():
 @hooks.hook('config-changed')
 @restart_on_change(restart_map())
 def config_changed():
-    if openstack_upgrade_available('quantum-common'):
+    if openstack_upgrade_available():
         do_openstack_upgrade(CONFIGS)
     if valid_plugin():
         CONFIGS.write_all()

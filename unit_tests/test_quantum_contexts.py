@@ -1,6 +1,7 @@
 from mock import MagicMock, patch
 import quantum_contexts
 from contextlib import contextmanager
+import charmhelpers.core.hookenv as hookenv
 
 from test_utils import (
     CharmTestCase
@@ -14,6 +15,7 @@ TO_PATCH = [
     'context_complete',
     'unit_get',
     'apt_install',
+    'get_os_codename_install_source',
 ]
 
 
@@ -149,6 +151,7 @@ class TestQuantumGatewayContext(CharmTestCase):
     @patch.object(quantum_contexts, 'get_host_ip')
     def test_all(self, _host_ip, _secret):
         self.config.return_value = 'ovs'
+        self.get_os_codename_install_source.return_value = 'folsom'
         _host_ip.return_value = '10.5.0.1'
         _secret.return_value = 'testsecret'
         self.assertEquals(quantum_contexts.QuantumGatewayContext()(),
@@ -164,6 +167,7 @@ class TestSharedSecret(CharmTestCase):
     def setUp(self):
         super(TestSharedSecret, self).setUp(quantum_contexts,
                                             TO_PATCH)
+        self.config.side_effect = self.test_config.get
 
     @patch('os.path')
     @patch('uuid.uuid4')
@@ -190,6 +194,7 @@ class TestHostIP(CharmTestCase):
     def setUp(self):
         super(TestHostIP, self).setUp(quantum_contexts,
                                       TO_PATCH)
+        self.config.side_effect = self.test_config.get
 
     def test_get_host_ip_already_ip(self):
         self.assertEquals(quantum_contexts.get_host_ip('10.5.0.1'),
@@ -216,3 +221,18 @@ class TestHostIP(CharmTestCase):
         self.assertEquals(quantum_contexts.get_host_ip('myhost.example.com'),
                           '10.5.0.1')
         _query.assert_called_with('myhost.example.com', 'A')
+
+
+class TestNetworkingName(CharmTestCase):
+    def setUp(self):
+        super(TestNetworkingName,
+              self).setUp(quantum_contexts,
+                          TO_PATCH)
+
+    def test_lt_havana(self):
+        self.get_os_codename_install_source.return_value = 'folsom'
+        self.assertEquals(quantum_contexts.networking_name(), 'quantum')
+
+    def test_ge_havana(self):
+        self.get_os_codename_install_source.return_value = 'havana'
+        self.assertEquals(quantum_contexts.networking_name(), 'neutron')
