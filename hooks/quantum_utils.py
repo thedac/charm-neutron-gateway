@@ -12,7 +12,8 @@ from charmhelpers.contrib.network.ovs import (
 )
 from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
-    get_os_codename_install_source
+    get_os_codename_install_source,
+    get_os_codename_package
 )
 import charmhelpers.contrib.openstack.context as context
 import charmhelpers.contrib.openstack.templating as templating
@@ -101,6 +102,13 @@ def get_early_packages():
 def get_packages():
     '''Return a list of packages for install based on the configured plugin'''
     return GATEWAY_PKGS[networking_name()][config('plugin')]
+
+
+def get_common_package():
+    if get_os_codename_package('quantum-common', fatal=False) is not None:
+        return 'quantum-common'
+    else:
+        return 'neutron-common'
 
 EXT_PORT_CONF = '/etc/init/ext-port.conf'
 TEMPLATES = 'templates'
@@ -256,7 +264,6 @@ def restart_map():
     '''
     _map = {}
     name = networking_name()
-    print CONFIG_FILES[name][config('plugin')]
     for f, ctxt in CONFIG_FILES[name][config('plugin')].iteritems():
         svcs = []
         for svc in ctxt['services']:
