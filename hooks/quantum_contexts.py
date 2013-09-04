@@ -127,11 +127,11 @@ class QuantumSharedDBContext(OSContextGenerator):
                 ctxt = {
                     'database_host': relation_get('db_host', rid=rid,
                                                   unit=unit),
-                    'quantum_database': QUANTUM_DB,
+                    'quantum_db': QUANTUM_DB,
                     'quantum_user': DB_USER,
                     'quantum_password': relation_get('quantum_password',
                                                      rid=rid, unit=unit),
-                    'nova_database': NOVA_DB,
+                    'nova_db': NOVA_DB,
                     'nova_user': NOVA_DB_USER,
                     'nova_password': relation_get('nova_password', rid=rid,
                                                   unit=unit)

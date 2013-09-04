@@ -367,6 +367,9 @@ def do_openstack_upgrade(configs):
         '--option', 'Dpkg::Options::=--force-confdef',
     ]
     apt_update(fatal=True)
+    apt_install(packages=get_early_packages(),
+                options=dpkg_opts,
+                fatal=True)
     apt_install(packages=get_packages(),
                 options=dpkg_opts,
                 fatal=True)
