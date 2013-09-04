@@ -71,12 +71,14 @@ NEUTRON_GATEWAY_PKGS = {
         "neutron-l3-agent",
         "neutron-dhcp-agent",
         'python-mysqldb',
+        'python-oslo.config',  # Force upgrade
         "nova-api-metadata"
     ],
     NVP: [
         "openvswitch-switch",
         "neutron-dhcp-agent",
         'python-mysqldb',
+        'python-oslo.config',  # Force upgrade
         "nova-api-metadata"
     ]
 }
