@@ -68,6 +68,7 @@ QUANTUM_GATEWAY_PKGS = {
 NEUTRON_GATEWAY_PKGS = {
     OVS: [
         "neutron-plugin-openvswitch-agent",
+        "openvswitch-switch",
         "neutron-l3-agent",
         "neutron-dhcp-agent",
         'python-mysqldb',
