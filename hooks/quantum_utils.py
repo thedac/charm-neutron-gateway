@@ -144,7 +144,8 @@ QUANTUM_SHARED_CONFIG_FILES = {
         'services': ['quantum-dhcp-agent']
     },
     QUANTUM_METADATA_AGENT_CONF: {
-        'hook_contexts': [NetworkServiceContext()],
+        'hook_contexts': [NetworkServiceContext(),
+                          QuantumGatewayContext()],
         'services': ['quantum-metadata-agent']
     },
 }
@@ -156,7 +157,8 @@ NEUTRON_SHARED_CONFIG_FILES = {
         'services': ['neutron-dhcp-agent']
     },
     NEUTRON_METADATA_AGENT_CONF: {
-        'hook_contexts': [NetworkServiceContext()],
+        'hook_contexts': [NetworkServiceContext(),
+                          QuantumGatewayContext()],
         'services': ['neutron-metadata-agent']
     },
 }
