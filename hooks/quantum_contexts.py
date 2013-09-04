@@ -17,23 +17,52 @@ from charmhelpers.contrib.openstack.context import (
     OSContextGenerator,
     context_complete
 )
+from charmhelpers.contrib.openstack.utils import (
+    get_os_codename_install_source
+)
 
 DB_USER = "quantum"
 QUANTUM_DB = "quantum"
 NOVA_DB_USER = "nova"
 NOVA_DB = "nova"
 
-OVS = "ovs"
-NVP = "nvp"
-
-OVS_PLUGIN = \
+QUANTUM_OVS_PLUGIN = \
     "quantum.plugins.openvswitch.ovs_quantum_plugin.OVSQuantumPluginV2"
-NVP_PLUGIN = \
+QUANTUM_NVP_PLUGIN = \
     "quantum.plugins.nicira.nicira_nvp_plugin.QuantumPlugin.NvpPluginV2"
+NEUTRON_OVS_PLUGIN = \
+    "neutron.plugins.openvswitch.ovs_neutron_plugin.OVSNeutronPluginV2"
+NEUTRON_NVP_PLUGIN = \
+    "neutron.plugins.nicira.nicira_nvp_plugin.NeutronPlugin.NvpPluginV2"
+NEUTRON = 'neutron'
+QUANTUM = 'quantum'
+
+
+@cached
+def networking_name():
+    ''' Determine whether neutron or quantum should be used for name '''
+    if get_os_codename_install_source(config('openstack-origin')) >= 'havana':
+        return NEUTRON
+    else:
+        return QUANTUM
+
+OVS = 'ovs'
+NVP = 'nvp'
+
 CORE_PLUGIN = {
-    OVS: OVS_PLUGIN,
-    NVP: NVP_PLUGIN
+    QUANTUM: {
+        OVS: QUANTUM_OVS_PLUGIN,
+        NVP: QUANTUM_NVP_PLUGIN
+    },
+    NEUTRON: {
+        OVS: NEUTRON_OVS_PLUGIN,
+        NVP: NEUTRON_NVP_PLUGIN
+    },
 }
+
+
+def core_plugin():
+    return CORE_PLUGIN[networking_name()][config('plugin')]
 
 
 class NetworkServiceContext(OSContextGenerator):
@@ -84,7 +113,7 @@ class QuantumGatewayContext(OSContextGenerator):
         ctxt = {
             'shared_secret': get_shared_secret(),
             'local_ip': get_host_ip(),
-            'core_plugin': CORE_PLUGIN[config('plugin')],
+            'core_plugin': core_plugin(),
             'plugin': config('plugin')
         }
         return ctxt
