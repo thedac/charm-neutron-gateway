@@ -177,7 +177,8 @@ class TestSharedSecret(CharmTestCase):
         with patch_open() as (_open, _file):
             self.assertEquals(quantum_contexts.get_shared_secret(),
                               'secret_thing')
-            _open.assert_called_with(quantum_contexts.SHARED_SECRET, 'w')
+            _open.assert_called_with(
+                quantum_contexts.SHARED_SECRET.format('quantum'), 'w')
             _file.write.assert_called_with('secret_thing')
 
     @patch('os.path')
@@ -187,7 +188,8 @@ class TestSharedSecret(CharmTestCase):
             _file.read.return_value = 'secret_thing\n'
             self.assertEquals(quantum_contexts.get_shared_secret(),
                               'secret_thing')
-            _open.assert_called_with(quantum_contexts.SHARED_SECRET, 'r')
+            _open.assert_called_with(
+                quantum_contexts.SHARED_SECRET.format('quantum'), 'r')
 
 
 class TestHostIP(CharmTestCase):
