@@ -31,6 +31,7 @@ TO_PATCH = [
     'install_ca_cert',
     'eligible_leader',
     'reassign_agent_resources',
+    'get_common_package'
 ]
 
 

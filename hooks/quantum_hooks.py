@@ -34,6 +34,7 @@ from quantum_utils import (
     do_openstack_upgrade,
     get_packages,
     get_early_packages,
+    get_common_package,
     valid_plugin,
     configure_ovs,
     reassign_agent_resources,
@@ -64,7 +65,7 @@ def install():
 @hooks.hook('config-changed')
 @restart_on_change(restart_map())
 def config_changed():
-    if openstack_upgrade_available('quantum-common'):
+    if openstack_upgrade_available(get_common_package()):
         do_openstack_upgrade(CONFIGS)
     if valid_plugin():
         CONFIGS.write_all()

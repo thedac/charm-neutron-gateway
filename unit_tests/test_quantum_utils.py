@@ -1,29 +1,36 @@
-from mock import MagicMock, patch, call
+from mock import MagicMock, call
 import charmhelpers.contrib.openstack.templating as templating
 templating.OSConfigRenderer = MagicMock()
 import quantum_utils
-from collections import OrderedDict
 
 from test_utils import (
     CharmTestCase
 )
 
+import charmhelpers.core.hookenv as hookenv
+
 TO_PATCH = [
-    'get_os_codename_package',
     'config',
     'get_os_codename_install_source',
+    'get_os_codename_package',
     'apt_update',
     'apt_install',
     'configure_installation_source',
     'log',
     'add_bridge',
-    'add_bridge_port'
+    'add_bridge_port',
+    'networking_name'
 ]
 
 
 class TestQuantumUtils(CharmTestCase):
     def setUp(self):
         super(TestQuantumUtils, self).setUp(quantum_utils, TO_PATCH)
+        self.networking_name.return_value = 'neutron'
+
+    def tearDown(self):
+        # Reset cached cache
+        hookenv.cache = {}
 
     def test_valid_plugin(self):
         self.config.return_value = 'ovs'
@@ -81,7 +88,7 @@ class TestQuantumUtils(CharmTestCase):
             '--option', 'Dpkg::Options::=--force-confdef',
         ]
         self.apt_install.assert_called_with(
-            packages=quantum_utils.GATEWAY_PKGS['ovs'],
+            packages=quantum_utils.GATEWAY_PKGS['neutron']['ovs'],
             options=dpkg_opts, fatal=True
         )
         self.configure_installation_source.assert_called_with(
@@ -90,80 +97,88 @@ class TestQuantumUtils(CharmTestCase):
 
     def test_register_configs_ovs(self):
         self.config.return_value = 'ovs'
-        self.get_os_codename_package.return_value = 'havana'
         configs = quantum_utils.register_configs()
-        confs = [quantum_utils.DHCP_AGENT_CONF,
-                 quantum_utils.METADATA_AGENT_CONF,
+        confs = [quantum_utils.NEUTRON_DHCP_AGENT_CONF,
+                 quantum_utils.NEUTRON_METADATA_AGENT_CONF,
                  quantum_utils.NOVA_CONF,
-                 quantum_utils.QUANTUM_CONF,
-                 quantum_utils.L3_AGENT_CONF,
-                 quantum_utils.OVS_PLUGIN_CONF,
+                 quantum_utils.NEUTRON_CONF,
+                 quantum_utils.NEUTRON_L3_AGENT_CONF,
+                 quantum_utils.NEUTRON_OVS_PLUGIN_CONF,
                  quantum_utils.EXT_PORT_CONF]
+        print configs.register.calls()
         for conf in confs:
             configs.register.assert_any_call(
                 conf,
-                quantum_utils.CONFIG_FILES[quantum_utils.OVS][conf]
+                quantum_utils.CONFIG_FILES['neutron'][quantum_utils.OVS][conf]
                                           ['hook_contexts']
             )
 
     def test_restart_map_ovs(self):
         self.config.return_value = 'ovs'
-        ex_map = OrderedDict([
-            (quantum_utils.L3_AGENT_CONF, ['quantum-l3-agent']),
-            (quantum_utils.OVS_PLUGIN_CONF,
-             ['quantum-plugin-openvswitch-agent']),
-            (quantum_utils.NOVA_CONF, ['nova-api-metadata']),
-            (quantum_utils.METADATA_AGENT_CONF, ['quantum-metadata-agent']),
-            (quantum_utils.DHCP_AGENT_CONF, ['quantum-dhcp-agent']),
-            (quantum_utils.QUANTUM_CONF, ['quantum-l3-agent',
-                                          'quantum-dhcp-agent',
-                                          'quantum-metadata-agent',
-                                          'quantum-plugin-openvswitch-agent'])
-        ])
+        ex_map = {
+            quantum_utils.NEUTRON_L3_AGENT_CONF: ['neutron-l3-agent'],
+            quantum_utils.NEUTRON_OVS_PLUGIN_CONF:
+             ['neutron-plugin-openvswitch-agent'],
+            quantum_utils.NOVA_CONF: ['nova-api-metadata'],
+            quantum_utils.NEUTRON_METADATA_AGENT_CONF:
+             ['neutron-metadata-agent'],
+            quantum_utils.NEUTRON_DHCP_AGENT_CONF: ['neutron-dhcp-agent'],
+            quantum_utils.NEUTRON_CONF: ['neutron-l3-agent',
+                                         'neutron-dhcp-agent',
+                                         'neutron-metadata-agent',
+                                         'neutron-plugin-openvswitch-agent']
+        }
         self.assertEquals(quantum_utils.restart_map(), ex_map)
 
     def test_register_configs_nvp(self):
         self.config.return_value = 'nvp'
-        self.get_os_codename_package.return_value = 'havana'
         configs = quantum_utils.register_configs()
-        confs = [quantum_utils.DHCP_AGENT_CONF,
-                 quantum_utils.METADATA_AGENT_CONF,
+        confs = [quantum_utils.NEUTRON_DHCP_AGENT_CONF,
+                 quantum_utils.NEUTRON_METADATA_AGENT_CONF,
                  quantum_utils.NOVA_CONF,
-                 quantum_utils.QUANTUM_CONF]
+                 quantum_utils.NEUTRON_CONF]
         for conf in confs:
             configs.register.assert_any_call(
                 conf,
-                quantum_utils.CONFIG_FILES[quantum_utils.NVP][conf]
+                quantum_utils.CONFIG_FILES['neutron'][quantum_utils.NVP][conf]
                                           ['hook_contexts']
             )
 
     def test_restart_map_nvp(self):
         self.config.return_value = 'nvp'
-        ex_map = OrderedDict([
-            (quantum_utils.DHCP_AGENT_CONF, ['quantum-dhcp-agent']),
-            (quantum_utils.NOVA_CONF, ['nova-api-metadata']),
-            (quantum_utils.QUANTUM_CONF, ['quantum-dhcp-agent',
-                                          'quantum-metadata-agent']),
-            (quantum_utils.METADATA_AGENT_CONF, ['quantum-metadata-agent']),
-        ])
+        ex_map = {
+            quantum_utils.NEUTRON_DHCP_AGENT_CONF: ['neutron-dhcp-agent'],
+            quantum_utils.NOVA_CONF: ['nova-api-metadata'],
+            quantum_utils.NEUTRON_CONF: ['neutron-dhcp-agent',
+                                         'neutron-metadata-agent'],
+            quantum_utils.NEUTRON_METADATA_AGENT_CONF:
+             ['neutron-metadata-agent'],
+        }
         self.assertEquals(quantum_utils.restart_map(), ex_map)
 
     def test_register_configs_pre_install(self):
         self.config.return_value = 'ovs'
-        self.get_os_codename_package.return_value = None
+        self.networking_name.return_value = 'quantum'
         configs = quantum_utils.register_configs()
-        confs = [quantum_utils.DHCP_AGENT_CONF,
-                 quantum_utils.METADATA_AGENT_CONF,
+        confs = [quantum_utils.QUANTUM_DHCP_AGENT_CONF,
+                 quantum_utils.QUANTUM_METADATA_AGENT_CONF,
                  quantum_utils.NOVA_CONF,
                  quantum_utils.QUANTUM_CONF,
-                 quantum_utils.L3_AGENT_CONF,
-                 quantum_utils.OVS_PLUGIN_CONF,
+                 quantum_utils.QUANTUM_L3_AGENT_CONF,
+                 quantum_utils.QUANTUM_OVS_PLUGIN_CONF,
                  quantum_utils.EXT_PORT_CONF]
+        print configs.register.mock_calls
         for conf in confs:
             configs.register.assert_any_call(
                 conf,
-                quantum_utils.CONFIG_FILES[quantum_utils.OVS][conf]
+                quantum_utils.CONFIG_FILES['quantum'][quantum_utils.OVS][conf]
                                           ['hook_contexts']
             )
 
+    def test_get_common_package_quantum(self):
+        self.get_os_codename_package.return_value = 'folsom'
+        self.assertEquals(quantum_utils.get_common_package(), 'quantum-common')
 
+    def test_get_common_package_neutron(self):
+        self.get_os_codename_package.return_value = None
+        self.assertEquals(quantum_utils.get_common_package(), 'neutron-common')
