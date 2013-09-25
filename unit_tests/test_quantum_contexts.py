@@ -87,10 +87,10 @@ class TestQuantumSharedDBContext(_TestQuantumContext):
             'database_host': '10.5.0.1',
             'nova_user': 'nova',
             'nova_password': 'novapass',
-            'nova_database': 'nova',
+            'nova_db': 'nova',
             'quantum_user': 'quantum',
             'quantum_password': 'quantumpass',
-            'quantum_database': 'quantum'
+            'quantum_db': 'quantum'
         }
 
 

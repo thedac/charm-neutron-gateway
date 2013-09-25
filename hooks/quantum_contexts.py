@@ -111,7 +111,7 @@ class QuantumGatewayContext(OSContextGenerator):
     def __call__(self):
         ctxt = {
             'shared_secret': get_shared_secret(),
-            'local_ip': get_host_ip(),
+            'local_ip': get_host_ip(), # XXX: data network impact
             'core_plugin': core_plugin(),
             'plugin': config('plugin')
         }
