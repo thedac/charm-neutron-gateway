@@ -14,7 +14,8 @@ from charmhelpers.fetch import (
     filter_installed_packages,
 )
 from charmhelpers.core.host import (
-    restart_on_change
+    restart_on_change,
+    lsb_release
 )
 from charmhelpers.contrib.hahelpers.cluster import(
     eligible_leader
@@ -50,7 +51,11 @@ CONFIGS = register_configs()
 
 @hooks.hook('install')
 def install():
-    configure_installation_source(config('openstack-origin'))
+    src = config('openstack-origin')
+    if (lsb_release()['DISTRIB_CODENAME'] == 'precise' and
+        src == 'distro'):
+        src = 'cloud:precise-folsom'
+    configure_installation_source(src)
     apt_update(fatal=True)
     if valid_plugin():
         apt_install(filter_installed_packages(get_early_packages()),

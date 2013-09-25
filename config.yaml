@@ -15,7 +15,7 @@ options:
       traffic to the external public network.
   openstack-origin:
     type: string
-    default: cloud:precise-folsom
+    default: distro
     description: |
       Optional configuration to support use of additional sources such as:
       .
@@ -23,6 +23,8 @@ options:
         - cloud:precise-folsom/proposed
         - cloud:precise-folsom
         - deb http://my.archive.com/ubuntu main|KEYID
+      .
+      Note that quantum/neutron is only supports > Folsom.
   rabbit-user:
     type: string
     default: nova
