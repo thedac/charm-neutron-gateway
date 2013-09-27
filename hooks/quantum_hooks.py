@@ -27,6 +27,7 @@ from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
     openstack_upgrade_available
 )
+from charmhelpers.payload.execd import execd_preinstall
 
 import sys
 from quantum_utils import (
@@ -51,6 +52,7 @@ CONFIGS = register_configs()
 
 @hooks.hook('install')
 def install():
+    execd_preinstall()
     src = config('openstack-origin')
     if (lsb_release()['DISTRIB_CODENAME'] == 'precise' and
         src == 'distro'):

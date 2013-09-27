@@ -31,7 +31,9 @@ TO_PATCH = [
     'install_ca_cert',
     'eligible_leader',
     'reassign_agent_resources',
-    'get_common_package'
+    'get_common_package',
+    'execd_preinstall',
+    'lsb_release'
 ]
 
 
@@ -42,6 +44,7 @@ class TestQuantumHooks(CharmTestCase):
         self.config.side_effect = self.test_config.get
         self.test_config.set('openstack-origin', 'cloud:precise-havana')
         self.test_config.set('plugin', 'ovs')
+        self.lsb_release.return_value = {'DISTRIB_CODENAME': 'precise'}
 
     def _call_hook(self, hookname):
         hooks.hooks.execute([
@@ -62,6 +65,14 @@ class TestQuantumHooks(CharmTestCase):
         ])
         self.get_early_packages.assert_called()
         self.get_packages.assert_called()
+        self.execd_preinstall.assert_called()
+
+    def test_install_hook_precise_nocloudarchive(self):
+        self.test_config.set('openstack-origin', 'distro')
+        self._call_hook('install')
+        self.configure_installation_source.assert_called_with(
+            'cloud:precise-folsom'
+        )
 
     @patch('sys.exit')
     def test_install_hook_invalid_plugin(self, _exit):

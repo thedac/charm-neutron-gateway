@@ -6,3 +6,4 @@ include:
     - contrib.openstack
     - contrib.hahelpers
     - contrib.network.ovs
+    - payload.execd
