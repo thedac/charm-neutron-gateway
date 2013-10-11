@@ -24,6 +24,8 @@ TO_PATCH = [
     'add_bridge_port',
     'networking_name',
     'headers_package',
+    'full_restart',
+    'service_running',
 ]
 
 
@@ -61,6 +63,16 @@ class TestQuantumUtils(CharmTestCase):
     def test_get_packages_ovs(self):
         self.config.return_value = 'ovs'
         self.assertNotEqual(quantum_utils.get_packages(), [])
+
+    def test_configure_ovs_starts_service_if_required(self):
+        self.service_running.return_value = False
+        quantum_utils.configure_ovs()
+        self.assertTrue(self.full_restart.called)
+
+    def test_configure_ovs_doesnt_restart_service(self):
+        self.service_running.return_value = True
+        quantum_utils.configure_ovs()
+        self.assertFalse(self.full_restart.called)
 
     def test_configure_ovs_ovs_ext_port(self):
         self.config.side_effect = self.test_config.get
