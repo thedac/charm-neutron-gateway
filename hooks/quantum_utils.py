@@ -15,8 +15,10 @@ from charmhelpers.contrib.openstack.utils import (
     get_os_codename_install_source,
     get_os_codename_package
 )
+
 import charmhelpers.contrib.openstack.context as context
 import charmhelpers.contrib.openstack.templating as templating
+from charmhelpers.contrib.openstack.neutron import headers_package
 from quantum_contexts import (
     CORE_PLUGIN, OVS, NVP,
     NEUTRON, QUANTUM,
@@ -97,9 +99,14 @@ EARLY_PACKAGES = {
 def get_early_packages():
     '''Return a list of package for pre-install based on configured plugin'''
     if config('plugin') in EARLY_PACKAGES:
-        return EARLY_PACKAGES[config('plugin')]
+        pkgs = EARLY_PACKAGES[config('plugin')]
     else:
         return []
+
+    # ensure headers are installed build any required dkms packages
+    if [p for p in pkgs if 'dkms' in p]:
+        return pkgs + [headers_package()]
+    return pkgs
 
 
 def get_packages():
