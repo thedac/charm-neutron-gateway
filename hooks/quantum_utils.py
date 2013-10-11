@@ -1,3 +1,4 @@
+from charmhelpers.core.host import service_running
 from charmhelpers.core.hookenv import (
     log,
     config,
@@ -8,7 +9,8 @@ from charmhelpers.fetch import (
 )
 from charmhelpers.contrib.network.ovs import (
     add_bridge,
-    add_bridge_port
+    add_bridge_port,
+    full_restart,
 )
 from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
@@ -391,6 +393,8 @@ def do_openstack_upgrade(configs):
 
 
 def configure_ovs():
+    if not service_running('openvswitch-switch'):
+        full_restart()
     if config('plugin') == OVS:
         add_bridge(INT_BRIDGE)
         add_bridge(EXT_BRIDGE)
