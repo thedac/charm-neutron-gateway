@@ -1,6 +1,9 @@
 from mock import MagicMock, call
+
 import charmhelpers.contrib.openstack.templating as templating
+
 templating.OSConfigRenderer = MagicMock()
+
 import quantum_utils
 
 from test_utils import (
@@ -19,7 +22,10 @@ TO_PATCH = [
     'log',
     'add_bridge',
     'add_bridge_port',
-    'networking_name'
+    'networking_name',
+    'headers_package',
+    'full_restart',
+    'service_running',
 ]
 
 
@@ -27,6 +33,7 @@ class TestQuantumUtils(CharmTestCase):
     def setUp(self):
         super(TestQuantumUtils, self).setUp(quantum_utils, TO_PATCH)
         self.networking_name.return_value = 'neutron'
+        self.headers_package.return_value = 'linux-headers-2.6.18'
 
     def tearDown(self):
         # Reset cached cache
@@ -44,8 +51,9 @@ class TestQuantumUtils(CharmTestCase):
 
     def test_get_early_packages_ovs(self):
         self.config.return_value = 'ovs'
-        self.assertEquals(quantum_utils.get_early_packages(),
-                          ['openvswitch-datapath-dkms'])
+        self.assertEquals(
+            quantum_utils.get_early_packages(),
+            ['openvswitch-datapath-dkms', 'linux-headers-2.6.18'])
 
     def test_get_early_packages_nvp(self):
         self.config.return_value = 'nvp'
@@ -55,6 +63,16 @@ class TestQuantumUtils(CharmTestCase):
     def test_get_packages_ovs(self):
         self.config.return_value = 'ovs'
         self.assertNotEqual(quantum_utils.get_packages(), [])
+
+    def test_configure_ovs_starts_service_if_required(self):
+        self.service_running.return_value = False
+        quantum_utils.configure_ovs()
+        self.assertTrue(self.full_restart.called)
+
+    def test_configure_ovs_doesnt_restart_service(self):
+        self.service_running.return_value = True
+        quantum_utils.configure_ovs()
+        self.assertFalse(self.full_restart.called)
 
     def test_configure_ovs_ovs_ext_port(self):
         self.config.side_effect = self.test_config.get
