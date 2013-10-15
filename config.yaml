@@ -7,6 +7,7 @@ options:
       Supported values include:
       .
         ovs - OpenVSwitch
+        nvp - Nicira NVP
   ext-port:
     type: string
     description: |
@@ -14,7 +15,7 @@ options:
       traffic to the external public network.
   openstack-origin:
     type: string
-    default: cloud:precise-folsom
+    default: distro
     description: |
       Optional configuration to support use of additional sources such as:
       .
@@ -22,3 +23,12 @@ options:
         - cloud:precise-folsom/proposed
         - cloud:precise-folsom
         - deb http://my.archive.com/ubuntu main|KEYID
+      .
+      Note that quantum/neutron is only supported >= Folsom.
+  rabbit-user:
+    type: string
+    default: nova
+  rabbit-vhost:
+    type: string
+    default: nova
+
