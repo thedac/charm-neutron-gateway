@@ -94,7 +94,8 @@ GATEWAY_PKGS = {
 }
 
 EARLY_PACKAGES = {
-    OVS: ['openvswitch-datapath-dkms']
+    OVS: ['openvswitch-datapath-dkms'],
+    NVP: ['openvswitch-datapath-dkms']
 }
 
 
