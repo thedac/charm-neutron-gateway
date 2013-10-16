@@ -58,7 +58,8 @@ class TestQuantumUtils(CharmTestCase):
     def test_get_early_packages_nvp(self):
         self.config.return_value = 'nvp'
         self.assertEquals(quantum_utils.get_early_packages(),
-                          [])
+                          ['openvswitch-datapath-dkms',
+                           'linux-headers-2.6.18'])
 
     def test_get_packages_ovs(self):
         self.config.return_value = 'ovs'
