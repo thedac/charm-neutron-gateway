@@ -27,8 +27,8 @@ options:
       Note that quantum/neutron is only supported >= Folsom.
   rabbit-user:
     type: string
-    default: nova
+    default: quantum
   rabbit-vhost:
     type: string
-    default: nova
+    default: openstack
 
