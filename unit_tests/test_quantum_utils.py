@@ -1,4 +1,4 @@
-from mock import MagicMock, call
+from mock import MagicMock, call, patch
 
 import charmhelpers.contrib.openstack.templating as templating
 
@@ -26,6 +26,7 @@ TO_PATCH = [
     'headers_package',
     'full_restart',
     'service_running',
+    'NetworkServiceContext'
 ]
 
 
@@ -57,9 +58,18 @@ class TestQuantumUtils(CharmTestCase):
 
     def test_get_early_packages_nvp(self):
         self.config.return_value = 'nvp'
+        self.assertEquals(
+            quantum_utils.get_early_packages(),
+            ['openvswitch-datapath-dkms', 'linux-headers-2.6.18'])
+
+    @patch.object(quantum_utils, 'EARLY_PACKAGES')
+    def test_get_early_packages_no_dkms(self, _early_packages):
+        pass
+
+    def test_get_early_packages_empty(self):
+        self.config.return_value = 'noop'
         self.assertEquals(quantum_utils.get_early_packages(),
-                          ['openvswitch-datapath-dkms',
-                           'linux-headers-2.6.18'])
+                          [])
 
     def test_get_packages_ovs(self):
         self.config.return_value = 'ovs'
@@ -201,3 +211,144 @@ class TestQuantumUtils(CharmTestCase):
     def test_get_common_package_neutron(self):
         self.get_os_codename_package.return_value = None
         self.assertEquals(quantum_utils.get_common_package(), 'neutron-common')
+
+
+network_context = {
+    'service_username': 'foo',
+    'service_password': 'bar',
+    'service_tenant': 'baz',
+    'region': 'foo-bar',
+    'keystone_host': 'keystone',
+    'auth_port': 5000
+}
+
+
+class DummyNetworkServiceContext():
+    def __init__(self, return_value):
+        self.return_value = return_value
+
+    def __call__(self):
+        return self.return_value
+
+agents_all_alive = {
+    'DHCP Agent': {
+        'agents': [
+            {'alive': True,
+             'id': '3e3550f2-38cc-11e3-9617-3c970e8b1cf7'},
+            {'alive': True,
+             'id': '53d6eefc-38cc-11e3-b3c8-3c970e8b1cf7'},
+            {'alive': True,
+             'id': '92b8b6bc-38ce-11e3-8537-3c970e8b1cf7'}
+        ]
+    },
+    'L3 Agent': {
+        'agents': [
+            {'alive': True,
+             'id': '7128198e-38ce-11e3-ba78-3c970e8b1cf7'},
+            {'alive': True,
+             'id': '72453824-38ce-11e3-938e-3c970e8b1cf7'},
+            {'alive': True,
+             'id': '84a04126-38ce-11e3-9449-3c970e8b1cf7'}
+        ]
+    }
+}
+
+agents_some_dead = {
+    'DHCP Agent': {
+        'agents': [
+            {'alive': True,
+             'id': '3e3550f2-38cc-11e3-9617-3c970e8b1cf7'},
+            {'alive': False,
+             'id': '53d6eefc-38cc-11e3-b3c8-3c970e8b1cf7'},
+            {'alive': True,
+             'id': '92b8b6bc-38ce-11e3-8537-3c970e8b1cf7'}
+        ]
+    },
+    'L3 Agent': {
+        'agents': [
+            {'alive': True,
+             'id': '7128198e-38ce-11e3-ba78-3c970e8b1cf7'},
+            {'alive': True,
+             'id': '72453824-38ce-11e3-938e-3c970e8b1cf7'},
+            {'alive': False,
+             'id': '84a04126-38ce-11e3-9449-3c970e8b1cf7'}
+        ]
+    }
+}
+
+dhcp_agent_networks = {
+    'networks': [
+        {'id': 'foo'},
+        {'id': 'bar'}
+    ]
+}
+
+l3_agent_routers = {
+    'routers': [
+        {'id': 'baz'},
+        {'id': 'bong'}
+    ]
+}
+
+
+class TestQuantumAgentReallocation(CharmTestCase):
+    def setUp(self):
+        super(TestQuantumAgentReallocation, self).setUp(quantum_utils,
+                                                        TO_PATCH)
+
+    def tearDown(self):
+        # Reset cached cache
+        hookenv.cache = {}
+
+    def test_no_network_context(self):
+        self.NetworkServiceContext.return_value = \
+            DummyNetworkServiceContext(return_value=None)
+        quantum_utils.reassign_agent_resources()
+        self.log.assert_called()
+
+    @patch('neutronclient.v2_0.client.Client')
+    def test_network_context_no_down_agents(self, _client):
+        self.NetworkServiceContext.return_value = \
+            DummyNetworkServiceContext(return_value=network_context)
+        dummy_client = MagicMock()
+        dummy_client.list_agents.side_effect = agents_all_alive.itervalues()
+        _client.return_value = dummy_client
+        quantum_utils.reassign_agent_resources()
+
+    @patch('neutronclient.v2_0.client.Client')
+    def test_network_context_relocation_required(self, _client):
+        self.NetworkServiceContext.return_value = \
+            DummyNetworkServiceContext(return_value=network_context)
+        dummy_client = MagicMock()
+        dummy_client.list_agents.side_effect = agents_some_dead.itervalues()
+        dummy_client.list_networks_on_dhcp_agent.return_value = \
+            dhcp_agent_networks
+        dummy_client.list_routers_on_l3_agent.return_value = \
+            l3_agent_routers
+        _client.return_value = dummy_client
+        quantum_utils.reassign_agent_resources()
+
+        # Ensure routers removed from dead l3 agent
+        dummy_client.remove_router_from_l3_agent.assert_has_calls(
+            [call(l3_agent='84a04126-38ce-11e3-9449-3c970e8b1cf7',
+                  router_id='bong'),
+             call(l3_agent='84a04126-38ce-11e3-9449-3c970e8b1cf7',
+                  router_id='baz')], any_order=True)
+        # and re-assigned across the remaining two live agents
+        dummy_client.add_router_to_l3_agent.assert_has_calls(
+            [call(l3_agent='7128198e-38ce-11e3-ba78-3c970e8b1cf7',
+                  body={'router_id': 'bong'}),
+             call(l3_agent='72453824-38ce-11e3-938e-3c970e8b1cf7',
+                  body={'router_id': 'baz'})], any_order=True)
+        # Ensure networks removed from dead dhcp agent
+        dummy_client.remove_network_from_dhcp_agent.assert_has_calls(
+            [call(dhcp_agent='53d6eefc-38cc-11e3-b3c8-3c970e8b1cf7',
+                  network_id='foo'),
+             call(dhcp_agent='53d6eefc-38cc-11e3-b3c8-3c970e8b1cf7',
+                  network_id='bar')], any_order=True)
+        # and re-assigned across the remaining two live agents
+        dummy_client.add_network_to_dhcp_agent.assert_has_calls(
+            [call(dhcp_agent='3e3550f2-38cc-11e3-9617-3c970e8b1cf7',
+                  body={'network_id': 'foo'}),
+             call(dhcp_agent='92b8b6bc-38ce-11e3-8537-3c970e8b1cf7',
+                  body={'network_id': 'bar'})], any_order=True)
