@@ -307,16 +307,20 @@ class TestQuantumAgentReallocation(CharmTestCase):
         self.log.assert_called()
 
     @patch('neutronclient.v2_0.client.Client')
-    def test_network_context_no_down_agents(self, _client):
+    def test_no_down_agents(self, _client):
         self.NetworkServiceContext.return_value = \
             DummyNetworkServiceContext(return_value=network_context)
         dummy_client = MagicMock()
         dummy_client.list_agents.side_effect = agents_all_alive.itervalues()
         _client.return_value = dummy_client
         quantum_utils.reassign_agent_resources()
+        dummy_client.add_router_to_l3_agent.assert_not_called()
+        dummy_client.remove_router_from_l3_agent.assert_not_called()
+        dummy_client.add_network_to_dhcp_agent.assert_not_called()
+        dummy_client.remove_network_from_dhcp_agent.assert_not_called()
 
     @patch('neutronclient.v2_0.client.Client')
-    def test_network_context_relocation_required(self, _client):
+    def test_agents_down_relocation_required(self, _client):
         self.NetworkServiceContext.return_value = \
             DummyNetworkServiceContext(return_value=network_context)
         dummy_client = MagicMock()
