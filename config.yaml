@@ -27,7 +27,7 @@ options:
       Note that quantum/neutron is only supported >= Folsom.
   rabbit-user:
     type: string
-    default: quantum
+    default: neutron
   rabbit-vhost:
     type: string
     default: openstack
