@@ -60,7 +60,7 @@ class TestQuantumUtils(CharmTestCase):
         self.config.return_value = 'nvp'
         self.assertEquals(
             quantum_utils.get_early_packages(),
-            ['openvswitch-datapath-dkms', 'linux-headers-2.6.18'])
+            [])
 
     @patch.object(quantum_utils, 'EARLY_PACKAGES')
     def test_get_early_packages_no_dkms(self, _early_packages):
@@ -76,6 +76,7 @@ class TestQuantumUtils(CharmTestCase):
         self.assertNotEqual(quantum_utils.get_packages(), [])
 
     def test_configure_ovs_starts_service_if_required(self):
+        self.config.return_value = 'ovs'
         self.service_running.return_value = False
         quantum_utils.configure_ovs()
         self.assertTrue(self.full_restart.called)
@@ -95,11 +96,6 @@ class TestQuantumUtils(CharmTestCase):
             call('br-ex')
         ])
         self.add_bridge_port.assert_called_with('br-ex', 'eth0')
-
-    def test_configure_ovs_nvp(self):
-        self.config.return_value = 'nvp'
-        quantum_utils.configure_ovs()
-        self.add_bridge.assert_called_with('br-int')
 
     def test_do_openstack_upgrade(self):
         self.config.side_effect = self.test_config.get
