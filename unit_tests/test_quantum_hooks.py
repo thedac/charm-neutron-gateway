@@ -26,6 +26,7 @@ TO_PATCH = [
     'CONFIGS',
     'configure_ovs',
     'relation_set',
+    'relation_ids',
     'unit_get',
     'relation_get',
     'install_ca_cert',
@@ -118,8 +119,9 @@ class TestQuantumHooks(CharmTestCase):
     def test_amqp_joined(self):
         self._call_hook('amqp-relation-joined')
         self.relation_set.assert_called_with(
-            username='nova',
-            vhost='nova',
+            username='neutron',
+            vhost='openstack',
+            relation_id=None
         )
 
     def test_amqp_changed(self):
