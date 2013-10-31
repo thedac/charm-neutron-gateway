@@ -27,6 +27,7 @@ from quantum_contexts import (
     networking_name,
     QuantumGatewayContext,
     NetworkServiceContext,
+    L3AgentContext,
     QuantumSharedDBContext,
     ExternalPortContext,
 )
@@ -210,7 +211,8 @@ NEUTRON_OVS_CONFIG_FILES = {
                      'neutron-plugin-openvswitch-agent']
     },
     NEUTRON_L3_AGENT_CONF: {
-        'hook_contexts': [NetworkServiceContext()],
+        'hook_contexts': [NetworkServiceContext(),
+                          L3AgentContext()],
         'services': ['neutron-l3-agent']
     },
     # TODO: Check to see if this is actually required

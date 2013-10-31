@@ -20,6 +20,9 @@ from charmhelpers.contrib.openstack.context import (
 from charmhelpers.contrib.openstack.utils import (
     get_os_codename_install_source
 )
+from charmhelpers.contrib.hahelpers.cluster import(
+    eligible_leader
+)
 
 DB_USER = "quantum"
 QUANTUM_DB = "quantum"
@@ -99,6 +102,23 @@ class NetworkServiceContext(OSContextGenerator):
         return {}
 
 
+class L3AgentContext(OSContextGenerator):
+    def __call__(self):
+        ctxt = {}
+        if config('run_internal_router') == 'leader':
+            ctxt['handle_internal_only_router'] = eligible_leader(None)
+
+        if config('run_internal_router') == 'all':
+            ctxt['handle_internal_only_router'] = True
+
+        if config('run_internal_router') == 'none':
+            ctxt['handle_internal_only_router'] = False
+
+        if eligible_leader(None) and config('external_network_id') and config('run_internal_router') == 'leader':
+            ctxt['external_network_id'] = config('external_network_id')
+        return ctxt
+
+
 class ExternalPortContext(OSContextGenerator):
     def __call__(self):
         if config('ext-port'):
@@ -173,3 +193,5 @@ def get_shared_secret():
         with open(_path, 'r') as secret_file:
             secret = secret_file.read().strip()
     return secret
+
+

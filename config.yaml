@@ -31,4 +31,20 @@ options:
   rabbit-vhost:
     type: string
     default: nova
-
+  run_internal_router:
+    type: string
+    default: all
+    description: |
+      Optional configuration to support how the L3 agent option
+      handle_internal_only_routers is configured.
+      all    => Set to be true everywhere
+      none   => Set to be false everywhere
+      leader => Set to be true on one node (the leader) and false everywhere
+                else.
+      Use leader and none when configuring multiple floating pools
+  external_network_id:
+    type: string
+    description: |
+      Optional configuration to set the external_network_id. Only needed when
+      configuring multiple external networks and should be used in conjunction
+      with run_internal_router.
