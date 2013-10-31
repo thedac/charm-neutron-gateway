@@ -105,7 +105,8 @@ def amqp_joined():
 
 
 @hooks.hook('shared-db-relation-changed',
-            'amqp-relation-changed')
+            'amqp-relation-changed',
+            'cluster-relation-changed')
 @restart_on_change(restart_map())
 def db_amqp_changed():
     CONFIGS.write_all()
