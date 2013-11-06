@@ -26,6 +26,7 @@ TO_PATCH = [
     'CONFIGS',
     'configure_ovs',
     'relation_set',
+    'relation_ids',
     'unit_get',
     'relation_get',
     'install_ca_cert',
@@ -99,9 +100,12 @@ class TestQuantumHooks(CharmTestCase):
     def test_upgrade_charm(self):
         _install = self.patch('install')
         _config_changed = self.patch('config_changed')
+        _amqp_joined = self.patch('amqp_joined')
+        self.relation_ids.return_value = ['amqp:0']
         self._call_hook('upgrade-charm')
-        _install.assert_called()
-        _config_changed.assert_called()
+        self.assertTrue(_install.called)
+        self.assertTrue(_config_changed.called)
+        _amqp_joined.assert_called_with(relation_id='amqp:0')
 
     def test_db_joined(self):
         self.unit_get.return_value = 'myhostname'
@@ -118,8 +122,9 @@ class TestQuantumHooks(CharmTestCase):
     def test_amqp_joined(self):
         self._call_hook('amqp-relation-joined')
         self.relation_set.assert_called_with(
-            username='nova',
-            vhost='nova',
+            username='neutron',
+            vhost='openstack',
+            relation_id=None
         )
 
     def test_amqp_changed(self):
