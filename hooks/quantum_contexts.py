@@ -114,7 +114,8 @@ class L3AgentContext(OSContextGenerator):
         if config('run_internal_router') == 'none':
             ctxt['handle_internal_only_router'] = False
 
-        if eligible_leader(None) and config('external_network_id') and config('run_internal_router') == 'leader':
+        if (eligible_leader(None) and config('external_network_id') and
+                config('run_internal_router') != 'all'):
             ctxt['external_network_id'] = config('external_network_id')
         return ctxt
 
@@ -193,5 +194,3 @@ def get_shared_secret():
         with open(_path, 'r') as secret_file:
             secret = secret_file.read().strip()
     return secret
-
-
