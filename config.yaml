@@ -25,12 +25,6 @@ options:
         - deb http://my.archive.com/ubuntu main|KEYID
       .
       Note that quantum/neutron is only supported >= Folsom.
-  rabbit-user:
-    type: string
-    default: nova
-  rabbit-vhost:
-    type: string
-    default: nova
   run_internal_router:
     type: string
     default: all
@@ -48,3 +42,10 @@ options:
       Optional configuration to set the external_network_id. Only needed when
       configuring multiple external networks and should be used in conjunction
       with run_internal_router.
+  rabbit-user:
+    type: string
+    default: neutron
+  rabbit-vhost:
+    type: string
+    default: openstack
+
