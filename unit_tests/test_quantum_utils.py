@@ -6,6 +6,11 @@ templating.OSConfigRenderer = MagicMock()
 
 import quantum_utils
 
+try:
+    import neutronclient
+except ImportError:
+    neutronclient = None
+
 from test_utils import (
     CharmTestCase
 )
@@ -289,6 +294,8 @@ l3_agent_routers = {
 
 class TestQuantumAgentReallocation(CharmTestCase):
     def setUp(self):
+        if not neutronclient:
+            raise self.skipTest('Skipping, no neutronclient installed')
         super(TestQuantumAgentReallocation, self).setUp(quantum_utils,
                                                         TO_PATCH)
 
