@@ -5,6 +5,7 @@ from charmhelpers.core.hookenv import (
     config,
     relation_get,
     relation_set,
+    relation_ids,
     unit_get,
     Hooks, UnregisteredHookError
 )
@@ -84,6 +85,10 @@ def config_changed():
 
 @hooks.hook('upgrade-charm')
 def upgrade_charm():
+    # NOTE(jamespage): Deal with changes to rabbitmq configuration for
+    # common virtual host across services
+    for r_id in relation_ids('amqp'):
+        amqp_joined(relation_id=r_id)
     install()
     config_changed()
 
@@ -99,8 +104,9 @@ def db_joined():
 
 
 @hooks.hook('amqp-relation-joined')
-def amqp_joined():
-    relation_set(username=config('rabbit-user'),
+def amqp_joined(relation_id=None):
+    relation_set(relation_id=relation_id,
+                 username=config('rabbit-user'),
                  vhost=config('rabbit-vhost'))
 
 
