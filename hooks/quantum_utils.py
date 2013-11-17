@@ -80,7 +80,6 @@ NEUTRON_GATEWAY_PKGS = {
         "nova-api-metadata"
     ],
     NVP: [
-        "openvswitch-switch",
         "neutron-dhcp-agent",
         'python-mysqldb',
         'python-oslo.config',  # Force upgrade
@@ -95,7 +94,7 @@ GATEWAY_PKGS = {
 
 EARLY_PACKAGES = {
     OVS: ['openvswitch-datapath-dkms'],
-    NVP: ['openvswitch-datapath-dkms']
+    NVP: []
 }
 
 
@@ -396,13 +395,11 @@ def do_openstack_upgrade(configs):
 
 
 def configure_ovs():
-    if not service_running('openvswitch-switch'):
-        full_restart()
     if config('plugin') == OVS:
+        if not service_running('openvswitch-switch'):
+            full_restart()
         add_bridge(INT_BRIDGE)
         add_bridge(EXT_BRIDGE)
         ext_port = config('ext-port')
         if ext_port:
             add_bridge_port(EXT_BRIDGE, ext_port)
-    if config('plugin') == NVP:
-        add_bridge(INT_BRIDGE)
