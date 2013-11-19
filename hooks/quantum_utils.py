@@ -318,11 +318,17 @@ def reassign_agent_resources():
                             auth_url=auth_url,
                             region_name=env['region'])
 
+    partner_gateways = []
+    for partner_gateway in relations_of_type(reltype='cluster'):
+        partner_gateways.append(server['private-address'].split('.')[0])
+
     agents = quantum.list_agents(agent_type=DHCP_AGENT)
     dhcp_agents = []
     l3_agents = []
     networks = {}
     for agent in agents['agents']:
+        if agent['host'] not in partner_gateways:
+            continue
         if not agent['alive']:
             log('DHCP Agent %s down' % agent['id'])
             for network in \
@@ -335,6 +341,8 @@ def reassign_agent_resources():
     agents = quantum.list_agents(agent_type=L3_AGENT)
     routers = {}
     for agent in agents['agents']:
+        if agent['host'] not in partner_gateways:
+            continue
         if not agent['alive']:
             log('L3 Agent %s down' % agent['id'])
             for router in \
