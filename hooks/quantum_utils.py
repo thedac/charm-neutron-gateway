@@ -3,6 +3,7 @@ from charmhelpers.core.hookenv import (
     log,
     config,
     relations_of_type,
+    unit_private_ip,
 )
 from charmhelpers.fetch import (
     apt_install,
@@ -319,7 +320,7 @@ def reassign_agent_resources():
                             auth_url=auth_url,
                             region_name=env['region'])
 
-    partner_gateways = []
+    partner_gateways = [unit_private_ip().split('.')[0]]
     for partner_gateway in relations_of_type(reltype='cluster'):
         partner_gateways.append(server['private-address'].split('.')[0])
 
@@ -328,8 +329,6 @@ def reassign_agent_resources():
     l3_agents = []
     networks = {}
     for agent in agents['agents']:
-        if agent['host'] not in partner_gateways:
-            continue
         if not agent['alive']:
             log('DHCP Agent %s down' % agent['id'])
             for network in \
@@ -337,13 +336,12 @@ def reassign_agent_resources():
                         agent['id'])['networks']:
                 networks[network['id']] = agent['id']
         else:
-            dhcp_agents.append(agent['id'])
+            if agent['host'] in partner_gateways:
+                dhcp_agents.append(agent['id'])
 
     agents = quantum.list_agents(agent_type=L3_AGENT)
     routers = {}
     for agent in agents['agents']:
-        if agent['host'] not in partner_gateways:
-            continue
         if not agent['alive']:
             log('L3 Agent %s down' % agent['id'])
             for router in \
@@ -351,7 +349,8 @@ def reassign_agent_resources():
                         agent['id'])['routers']:
                 routers[router['id']] = agent['id']
         else:
-            l3_agents.append(agent['id'])
+            if agent['host'] in partner_gateways:
+                l3_agents.append(agent['id'])
 
     index = 0
     for router_id in routers:
