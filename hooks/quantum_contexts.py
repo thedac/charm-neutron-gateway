@@ -115,7 +115,7 @@ class L3AgentContext(OSContextGenerator):
             ctxt['handle_internal_only_router'] = False
 
         if config('external-network-id'):
-            ctxt['external-network-id'] = config('external-network-id')
+            ctxt['ext_net_id'] = config('external-network-id')
         return ctxt
 
 
