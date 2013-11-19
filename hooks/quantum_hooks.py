@@ -134,6 +134,7 @@ def cluster_departed():
         CONFIGS.write_all()
 
 
+@hooks.hook('cluster-relation-broken')
 @hooks.hook('stop')
 def stop():
     service_stop('neutron-l3-agent')
