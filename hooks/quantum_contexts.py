@@ -105,18 +105,18 @@ class NetworkServiceContext(OSContextGenerator):
 class L3AgentContext(OSContextGenerator):
     def __call__(self):
         ctxt = {}
-        if config('run_internal_router') == 'leader':
+        if config('run-internal-router') == 'leader':
             ctxt['handle_internal_only_router'] = eligible_leader(None)
 
-        if config('run_internal_router') == 'all':
+        if config('run-internal-router') == 'all':
             ctxt['handle_internal_only_router'] = True
 
-        if config('run_internal_router') == 'none':
+        if config('run-internal-router') == 'none':
             ctxt['handle_internal_only_router'] = False
 
-        if (eligible_leader(None) and config('external_network_id') and
-                config('run_internal_router') != 'all'):
-            ctxt['external_network_id'] = config('external_network_id')
+        if (eligible_leader(None) and config('external-network-id') and
+                config('run-internal-router') != 'all'):
+            ctxt['external-network-id'] = config('external-network-id')
         return ctxt
 
 

@@ -149,23 +149,23 @@ class TestL3AgentContext(CharmTestCase):
         self.config.side_effect = self.test_config.get
 
     def test_no_ext_netid(self):
-        self.test_config.set('run_internal_router', 'none')
-        self.test_config.set('external_network_id', '')
+        self.test_config.set('run-internal-router', 'none')
+        self.test_config.set('external-network-id', '')
         self.eligible_leader.return_value = False
         self.assertEquals(quantum_contexts.L3AgentContext()(),
                           {'handle_internal_only_router': False})
 
     def test_hior_leader(self):
-        self.test_config.set('run_internal_router', 'leader')
-        self.test_config.set('external_network_id', 'netid')
+        self.test_config.set('run-internal-router', 'leader')
+        self.test_config.set('external-network-id', 'netid')
         self.eligible_leader.return_value = True
         self.assertEquals(quantum_contexts.L3AgentContext()(),
                           {'handle_internal_only_router': True,
-                           'external_network_id': 'netid'})
+                           'external-network-id': 'netid'})
 
     def test_hior_all(self):
-        self.test_config.set('run_internal_router', 'all')
-        self.test_config.set('external_network_id', 'netid')
+        self.test_config.set('run-internal-router', 'all')
+        self.test_config.set('external-network-id', 'netid')
         self.eligible_leader.return_value = True
         self.assertEquals(quantum_contexts.L3AgentContext()(),
                           {'handle_internal_only_router': True})

@@ -65,10 +65,10 @@ network id can be set differently for each gateway e.g.
 
     Create extnet1 and extnet2 via neutron client and take a note of their ids
 
-    juju set quantum-gateway-extnet1 "run_internal_router=leader"
-    juju set quantum-gateway-extnet2 "run_internal_router=none"
-    juju set quantum-gateway-extnet1 "external_network_id=<extnet1 id>"
-    juju set quantum-gateway-extnet2 "external_network_id=<extnet2 id>"
+    juju set quantum-gateway-extnet1 "run-internal-router=leader"
+    juju set quantum-gateway-extnet2 "run-internal-router=none"
+    juju set quantum-gateway-extnet1 "external-network-id=<extnet1 id>"
+    juju set quantum-gateway-extnet2 "external-network-id=<extnet2 id>"
 
 See upstream [Neutron multi extnet](http://docs.openstack.org/trunk/config-reference/content/adv_cfg_l3_agent_multi_extnet.html)
 
