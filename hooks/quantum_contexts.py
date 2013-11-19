@@ -114,8 +114,7 @@ class L3AgentContext(OSContextGenerator):
         if config('run-internal-router') == 'none':
             ctxt['handle_internal_only_router'] = False
 
-        if (eligible_leader(None) and config('external-network-id') and
-                config('run-internal-router') != 'all'):
+        if config('external-network-id'):
             ctxt['external-network-id'] = config('external-network-id')
         return ctxt
 
