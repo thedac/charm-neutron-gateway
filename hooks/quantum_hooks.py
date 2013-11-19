@@ -15,7 +15,8 @@ from charmhelpers.fetch import (
 )
 from charmhelpers.core.host import (
     restart_on_change,
-    lsb_release
+    lsb_release,
+    service_stop
 )
 from charmhelpers.contrib.hahelpers.cluster import(
     eligible_leader
@@ -131,6 +132,11 @@ def cluster_departed():
     if eligible_leader(None):
         reassign_agent_resources()
         CONFIGS.write_all()
+
+
+@hooks.hook('stop')
+def stop():
+    service_stop('neutron-l3-agent')
 
 
 if __name__ == '__main__':
