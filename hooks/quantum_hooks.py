@@ -106,7 +106,8 @@ def amqp_joined():
 
 @hooks.hook('shared-db-relation-changed',
             'amqp-relation-changed',
-            'cluster-relation-changed')
+            'cluster-relation-changed',
+            'cluster-relation-joined')
 @restart_on_change(restart_map())
 def db_amqp_changed():
     CONFIGS.write_all()
@@ -121,6 +122,7 @@ def nm_changed():
 
 
 @hooks.hook("cluster-relation-departed")
+@restart_on_change(restart_map())
 def cluster_departed():
     if config('plugin') == 'nvp':
         log('Unable to re-assign agent resources for failed nodes with nvp',
@@ -128,6 +130,7 @@ def cluster_departed():
         return
     if eligible_leader(None):
         reassign_agent_resources()
+        CONFIGS.write_all()
 
 
 if __name__ == '__main__':
