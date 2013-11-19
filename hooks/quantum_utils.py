@@ -2,6 +2,7 @@ from charmhelpers.core.host import service_running
 from charmhelpers.core.hookenv import (
     log,
     config,
+    relations_of_type,
 )
 from charmhelpers.fetch import (
     apt_install,
