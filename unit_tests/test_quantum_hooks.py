@@ -34,7 +34,8 @@ TO_PATCH = [
     'reassign_agent_resources',
     'get_common_package',
     'execd_preinstall',
-    'lsb_release'
+    'lsb_release',
+    'service_stop',
 ]
 
 
@@ -157,3 +158,7 @@ class TestQuantumHooks(CharmTestCase):
         self.eligible_leader.return_value = True
         self._call_hook('cluster-relation-departed')
         self.reassign_agent_resources.assert_called()
+
+    def test_stop(self):
+        self._call_hook('stop')
+        self.service_stop.assert_called_with('neutron-l3-agent')

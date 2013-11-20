@@ -16,7 +16,8 @@ from charmhelpers.fetch import (
 )
 from charmhelpers.core.host import (
     restart_on_change,
-    lsb_release
+    lsb_release,
+    service_stop
 )
 from charmhelpers.contrib.hahelpers.cluster import(
     eligible_leader
@@ -111,7 +112,9 @@ def amqp_joined(relation_id=None):
 
 
 @hooks.hook('shared-db-relation-changed',
-            'amqp-relation-changed')
+            'amqp-relation-changed',
+            'cluster-relation-changed',
+            'cluster-relation-joined')
 @restart_on_change(restart_map())
 def db_amqp_changed():
     CONFIGS.write_all()
@@ -126,6 +129,7 @@ def nm_changed():
 
 
 @hooks.hook("cluster-relation-departed")
+@restart_on_change(restart_map())
 def cluster_departed():
     if config('plugin') == 'nvp':
         log('Unable to re-assign agent resources for failed nodes with nvp',
@@ -133,6 +137,13 @@ def cluster_departed():
         return
     if eligible_leader(None):
         reassign_agent_resources()
+        CONFIGS.write_all()
+
+
+@hooks.hook('cluster-relation-broken')
+@hooks.hook('stop')
+def stop():
+    service_stop('neutron-l3-agent')
 
 
 if __name__ == '__main__':

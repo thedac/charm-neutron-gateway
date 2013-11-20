@@ -2,6 +2,8 @@ from charmhelpers.core.host import service_running
 from charmhelpers.core.hookenv import (
     log,
     config,
+    relations_of_type,
+    unit_private_ip,
 )
 from charmhelpers.fetch import (
     apt_install,
@@ -27,6 +29,7 @@ from quantum_contexts import (
     networking_name,
     QuantumGatewayContext,
     NetworkServiceContext,
+    L3AgentContext,
     QuantumSharedDBContext,
     ExternalPortContext,
 )
@@ -209,7 +212,8 @@ NEUTRON_OVS_CONFIG_FILES = {
                      'neutron-plugin-openvswitch-agent']
     },
     NEUTRON_L3_AGENT_CONF: {
-        'hook_contexts': [NetworkServiceContext()],
+        'hook_contexts': [NetworkServiceContext(),
+                          L3AgentContext()],
         'services': ['neutron-l3-agent']
     },
     # TODO: Check to see if this is actually required
@@ -315,6 +319,10 @@ def reassign_agent_resources():
                             auth_url=auth_url,
                             region_name=env['region'])
 
+    partner_gateways = [unit_private_ip().split('.')[0]]
+    for partner_gateway in relations_of_type(reltype='cluster'):
+        partner_gateways.append(partner_gateway['private-address'].split('.')[0])
+
     agents = quantum.list_agents(agent_type=DHCP_AGENT)
     dhcp_agents = []
     l3_agents = []
@@ -327,7 +335,8 @@ def reassign_agent_resources():
                         agent['id'])['networks']:
                 networks[network['id']] = agent['id']
         else:
-            dhcp_agents.append(agent['id'])
+            if agent['host'].split('.')[0] in partner_gateways:
+                dhcp_agents.append(agent['id'])
 
     agents = quantum.list_agents(agent_type=L3_AGENT)
     routers = {}
@@ -339,7 +348,13 @@ def reassign_agent_resources():
                         agent['id'])['routers']:
                 routers[router['id']] = agent['id']
         else:
-            l3_agents.append(agent['id'])
+            if agent['host'].split('.')[0] in partner_gateways:
+                l3_agents.append(agent['id'])
+
+    if len(dhcp_agents) == 0 or len(l3_agents) == 0:
+        log('Unable to relocate resources, there are %s dhcp_agents and %s \
+             l3_agents in this cluster' % (len(dhcp_agents), len(l3_agents)))
+        return
 
     index = 0
     for router_id in routers:
