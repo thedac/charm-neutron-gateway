@@ -182,12 +182,14 @@ class TestQuantumUtils(CharmTestCase):
     def test_stop_services_nvp(self):
         self.config.return_value = 'nvp'
         quantum_utils.stop_services()
-        calls = [call('neutron-dhcp-agent'),
-                 call('nova-api-metadata'),
-                 call('neutron-metadata-agent')]
+        calls = [
+            call('neutron-dhcp-agent'),
+            call('nova-api-metadata'),
+            call('neutron-metadata-agent')
+        ]
         self.service_stop.assert_has_calls(
-             calls,
-             any_order=True,
+            calls,
+            any_order=True,
         )
 
     def test_stop_services_ovs(self):
@@ -199,8 +201,8 @@ class TestQuantumUtils(CharmTestCase):
                  call('neutron-l3-agent'),
                  call('neutron-metadata-agent')]
         self.service_stop.assert_has_calls(
-             calls,
-             any_order=True,
+            calls,
+            any_order=True,
         )
 
     def test_restart_map_nvp(self):
