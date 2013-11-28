@@ -1,9 +1,12 @@
-from charmhelpers.core.host import service_running
+from charmhelpers.core.host import (
+    service_running,
+    service_stop
+)
 from charmhelpers.core.hookenv import (
     log,
     config,
     relations_of_type,
-    unit_private_ip,
+    unit_private_ip
 )
 from charmhelpers.fetch import (
     apt_install,
@@ -12,12 +15,13 @@ from charmhelpers.fetch import (
 from charmhelpers.contrib.network.ovs import (
     add_bridge,
     add_bridge_port,
-    full_restart,
+    full_restart
 )
 from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
     get_os_codename_install_source,
-    get_os_codename_package
+    get_os_codename_package,
+    get_hostname
 )
 
 import charmhelpers.contrib.openstack.context as context
@@ -272,6 +276,16 @@ def register_configs():
     return configs
 
 
+def stop_services():
+    name = networking_name()
+    svcs = set()
+    for ctxt in CONFIG_FILES[name][config('plugin')].itervalues():
+        for svc in ctxt['services']:
+            svcs.add(svc)
+    for svc in svcs:
+        service_stop(svc)
+
+
 def restart_map():
     '''
     Determine the correct resource map to be passed to
@@ -321,7 +335,8 @@ def reassign_agent_resources():
 
     partner_gateways = [unit_private_ip().split('.')[0]]
     for partner_gateway in relations_of_type(reltype='cluster'):
-        partner_gateways.append(partner_gateway['private-address'].split('.')[0])
+        gateway_hostname = get_hostname(partner_gateway['private-address'])
+        partner_gateways.append(gateway_hostname.partition('.')[0])
 
     agents = quantum.list_agents(agent_type=DHCP_AGENT)
     dhcp_agents = []
@@ -335,7 +350,7 @@ def reassign_agent_resources():
                         agent['id'])['networks']:
                 networks[network['id']] = agent['id']
         else:
-            if agent['host'].split('.')[0] in partner_gateways:
+            if agent['host'].partition('.')[0] in partner_gateways:
                 dhcp_agents.append(agent['id'])
 
     agents = quantum.list_agents(agent_type=L3_AGENT)

@@ -17,7 +17,6 @@ from charmhelpers.fetch import (
 from charmhelpers.core.host import (
     restart_on_change,
     lsb_release,
-    service_stop
 )
 from charmhelpers.contrib.hahelpers.cluster import(
     eligible_leader
@@ -27,7 +26,7 @@ from charmhelpers.contrib.hahelpers.apache import(
 )
 from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
-    openstack_upgrade_available
+    openstack_upgrade_available,
 )
 from charmhelpers.payload.execd import execd_preinstall
 
@@ -42,6 +41,7 @@ from quantum_utils import (
     valid_plugin,
     configure_ovs,
     reassign_agent_resources,
+    stop_services
 )
 from quantum_contexts import (
     DB_USER, QUANTUM_DB,
@@ -143,8 +143,7 @@ def cluster_departed():
 @hooks.hook('cluster-relation-broken')
 @hooks.hook('stop')
 def stop():
-    service_stop('neutron-l3-agent')
-
+    stop_services()
 
 if __name__ == '__main__':
     try:

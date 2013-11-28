@@ -36,6 +36,7 @@ TO_PATCH = [
     'NetworkServiceContext',
     'unit_private_ip',
     'relations_of_type',
+    'service_stop',
 ]
 
 
@@ -177,6 +178,30 @@ class TestQuantumUtils(CharmTestCase):
                 quantum_utils.CONFIG_FILES['neutron'][quantum_utils.NVP][conf]
                                           ['hook_contexts']
             )
+
+    def test_stop_services_nvp(self):
+        self.config.return_value = 'nvp'
+        quantum_utils.stop_services()
+        calls = [call('neutron-dhcp-agent'),
+                 call('nova-api-metadata'),
+                 call('neutron-metadata-agent')]
+        self.service_stop.assert_has_calls(
+             calls,
+             any_order=True,
+        )
+
+    def test_stop_services_ovs(self):
+        self.config.return_value = 'ovs'
+        quantum_utils.stop_services()
+        calls = [call('neutron-dhcp-agent'),
+                 call('neutron-plugin-openvswitch-agent'),
+                 call('nova-api-metadata'),
+                 call('neutron-l3-agent'),
+                 call('neutron-metadata-agent')]
+        self.service_stop.assert_has_calls(
+             calls,
+             any_order=True,
+        )
 
     def test_restart_map_nvp(self):
         self.config.return_value = 'nvp'
@@ -358,6 +383,7 @@ cluster1 = ['cluster1-machine1.internal']
 cluster2 = ['cluster2-machine1.internal', 'cluster2-machine2.internal'
             'cluster2-machine3.internal']
 
+
 class TestQuantumAgentReallocation(CharmTestCase):
     def setUp(self):
         if not neutronclient:
@@ -393,14 +419,16 @@ class TestQuantumAgentReallocation(CharmTestCase):
         self.NetworkServiceContext.return_value = \
             DummyNetworkServiceContext(return_value=network_context)
         dummy_client = MagicMock()
-        dummy_client.list_agents.side_effect = agents_some_dead_cl2.itervalues()
+        dummy_client.list_agents.side_effect = \
+            agents_some_dead_cl2.itervalues()
         dummy_client.list_networks_on_dhcp_agent.return_value = \
             dhcp_agent_networks
         dummy_client.list_routers_on_l3_agent.return_value = \
             l3_agent_routers
         _client.return_value = dummy_client
         self.unit_private_ip.return_value = 'cluster2-machine1.internal'
-        self.relations_of_type.return_value = [ { 'private-address': 'cluster2-machine3.internal' }]
+        self.relations_of_type.return_value = \
+            [{'private-address': 'cluster2-machine3.internal'}]
         quantum_utils.reassign_agent_resources()
 
         # Ensure routers removed from dead l3 agent
@@ -433,7 +461,8 @@ class TestQuantumAgentReallocation(CharmTestCase):
         self.NetworkServiceContext.return_value = \
             DummyNetworkServiceContext(return_value=network_context)
         dummy_client = MagicMock()
-        dummy_client.list_agents.side_effect = agents_some_dead_cl1.itervalues()
+        dummy_client.list_agents.side_effect = \
+            agents_some_dead_cl1.itervalues()
         dummy_client.list_networks_on_dhcp_agent.return_value = \
             dhcp_agent_networks
         dummy_client.list_routers_on_l3_agent.return_value = \

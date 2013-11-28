@@ -35,7 +35,7 @@ TO_PATCH = [
     'get_common_package',
     'execd_preinstall',
     'lsb_release',
-    'service_stop',
+    'stop_services',
 ]
 
 
@@ -161,4 +161,4 @@ class TestQuantumHooks(CharmTestCase):
 
     def test_stop(self):
         self._call_hook('stop')
-        self.service_stop.assert_called_with('neutron-l3-agent')
+        self.stop_services.assert_called
