@@ -430,6 +430,6 @@ def configure_ovs():
             full_restart()
         add_bridge(INT_BRIDGE)
         add_bridge(EXT_BRIDGE)
-        ext_port = config('ext-port')
-        if ext_port:
-            add_bridge_port(EXT_BRIDGE, ext_port)
+        ext_port_ctx = ExternalPortContext()()
+        if ext_port_ctx is not None and ext_port_ctx['ext_port']:
+            add_bridge_port(EXT_BRIDGE, ext_port_ctx['ext_port'])

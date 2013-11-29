@@ -49,6 +49,18 @@ The gateway provides two key services; L3 network routing and DHCP services.
 
 These are both required in a fully functional Neutron Openstack deployment.
 
+If the port to be used for external traffic is consistent accross all quantum
+gateways then is can be specified by simply setting ext-port to the nic id e.g.
+
+    quantum-gateway:
+        ext-port: eth2
+
+However, if it varies between hosts then the mac addresses of the external
+nics for each host can be passed as a comma seperated list e.g.
+
+    quantum-gateway:
+        ext-port: <MAC ext port host 1>, <MAC ext port host 2>, <MAC ext port host 3>
+
 If multiple floating pools are needed then an L3 agent (which corresponds to
 a quantum-gateway for the sake of this charm) is needed for each one. Each
 gateway needs to be deployed as a seperate service so that the external

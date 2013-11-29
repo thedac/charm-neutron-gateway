@@ -16,6 +16,8 @@ TO_PATCH = [
     'apt_install',
     'get_os_codename_install_source',
     'eligible_leader',
+    'list_nics',
+    'get_nic_hwaddr',
 ]
 
 
@@ -136,10 +138,26 @@ class TestExternalPortContext(CharmTestCase):
         self.assertEquals(quantum_contexts.ExternalPortContext()(),
                           None)
 
-    def test_ext_port(self):
+    def test_ext_port_eth(self):
         self.config.return_value = 'eth1010'
         self.assertEquals(quantum_contexts.ExternalPortContext()(),
                           {'ext_port': 'eth1010'})
+
+    def test_ext_port_mac(self):
+        mac_addresses = {
+            'eth0': 'fe:c5:ce:8e:2b:00',
+            'eth1': 'fe:c5:ce:8e:2b:01',
+            'eth2': 'fe:c5:ce:8e:2b:02',
+            'eth3': 'fe:c5:ce:8e:2b:03',
+        }
+
+        def get_hwaddr(arg):
+            return mac_addresses[arg]
+        self.config.return_value = mac_addresses['eth2']
+        self.list_nics.return_value = mac_addresses.keys()
+        self.get_nic_hwaddr.side_effect = get_hwaddr
+        self.assertEquals(quantum_contexts.ExternalPortContext()(),
+                          {'ext_port': 'eth2'})
 
 
 class TestL3AgentContext(CharmTestCase):
