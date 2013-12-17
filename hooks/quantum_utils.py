@@ -308,15 +308,8 @@ def restart_map():
                     that should be restarted when file changes.
     '''
     _map = {}
-    release = get_os_codename_install_source(config('openstack-origin'))
     plugin = config('plugin')
     name = networking_name()
-    if plugin == 'ovs':
-        if release >= 'icehouse':
-            CONFIG_FILES[name][plugin].pop(NEUTRON_OVS_PLUGIN_CONF)
-        else:
-            CONFIG_FILES[name][plugin].pop(NEUTRON_ML2_PLUGIN_CONF)
-
     for f, ctxt in CONFIG_FILES[name][plugin].iteritems():
         svcs = []
         for svc in ctxt['services']:
