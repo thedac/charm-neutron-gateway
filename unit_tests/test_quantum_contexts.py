@@ -176,11 +176,14 @@ class TestQuantumGatewayContext(CharmTestCase):
     def setUp(self):
         super(TestQuantumGatewayContext, self).setUp(quantum_contexts,
                                                      TO_PATCH)
+        self.config.side_effect = self.test_config.get
 
     @patch.object(quantum_contexts, 'get_shared_secret')
     @patch.object(quantum_contexts, 'get_host_ip')
     def test_all(self, _host_ip, _secret):
-        self.config.return_value = 'ovs'
+        self.test_config.set('plugin', 'ovs')
+        self.test_config.set('debug', False)
+        self.test_config.set('verbose', True)
         self.get_os_codename_install_source.return_value = 'folsom'
         _host_ip.return_value = '10.5.0.1'
         _secret.return_value = 'testsecret'
@@ -189,7 +192,9 @@ class TestQuantumGatewayContext(CharmTestCase):
             'local_ip': '10.5.0.1',
             'core_plugin': "quantum.plugins.openvswitch.ovs_quantum_plugin."
                            "OVSQuantumPluginV2",
-            'plugin': 'ovs'
+            'plugin': 'ovs',
+            'debug': False,
+            'verbose': True
         })
 
 

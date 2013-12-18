@@ -48,4 +48,11 @@ options:
   rabbit-vhost:
     type: string
     default: openstack
-
+  debug:
+    default: False
+    type: boolean
+    description: Enable debug logging
+  verbose:
+    default: False
+    type: boolean
+    description: Enable verbose logging
