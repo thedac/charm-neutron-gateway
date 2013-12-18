@@ -53,8 +53,6 @@ QUANTUM_PLUGIN_CONF = {
 
 NEUTRON_OVS_PLUGIN_CONF = \
     "/etc/neutron/plugins/openvswitch/ovs_neutron_plugin.ini"
-NEUTRON_ML2_PLUGIN_CONF = \
-    "/etc/neutron/plugins/ml2/ml2_conf.ini"
 NEUTRON_NVP_PLUGIN_CONF = \
     "/etc/neutron/plugins/nicira/nvp.ini"
 NEUTRON_PLUGIN_CONF = {
@@ -211,8 +209,7 @@ QUANTUM_OVS_CONFIG_FILES.update(QUANTUM_SHARED_CONFIG_FILES)
 NEUTRON_OVS_CONFIG_FILES = {
     NEUTRON_CONF: {
         'hook_contexts': [context.AMQPContext(),
-                          QuantumGatewayContext(),
-                          QuantumSharedDBContext()],
+                          QuantumGatewayContext()],
         'services': ['neutron-l3-agent',
                      'neutron-dhcp-agent',
                      'neutron-metadata-agent',
@@ -227,10 +224,6 @@ NEUTRON_OVS_CONFIG_FILES = {
     NEUTRON_OVS_PLUGIN_CONF: {
         'hook_contexts': [QuantumSharedDBContext(),
                           QuantumGatewayContext()],
-        'services': ['neutron-plugin-openvswitch-agent']
-    },
-    NEUTRON_ML2_PLUGIN_CONF: {
-        'hook_contexts': [QuantumGatewayContext()],
         'services': ['neutron-plugin-openvswitch-agent']
     },
     EXT_PORT_CONF: {
@@ -276,12 +269,6 @@ def register_configs():
 
     plugin = config('plugin')
     name = networking_name()
-    if plugin == 'ovs':
-        if release >= 'icehouse':
-            CONFIG_FILES[name][plugin].pop(NEUTRON_OVS_PLUGIN_CONF)
-        else:
-            CONFIG_FILES[name][plugin].pop(NEUTRON_ML2_PLUGIN_CONF)
-
     for conf in CONFIG_FILES[name][plugin]:
         configs.register(conf,
                          CONFIG_FILES[name][plugin][conf]['hook_contexts'])
@@ -308,9 +295,8 @@ def restart_map():
                     that should be restarted when file changes.
     '''
     _map = {}
-    plugin = config('plugin')
     name = networking_name()
-    for f, ctxt in CONFIG_FILES[name][plugin].iteritems():
+    for f, ctxt in CONFIG_FILES[name][config('plugin')].iteritems():
         svcs = []
         for svc in ctxt['services']:
             svcs.append(svc)

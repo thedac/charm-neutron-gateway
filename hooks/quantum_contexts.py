@@ -35,8 +35,6 @@ QUANTUM_NVP_PLUGIN = \
     "quantum.plugins.nicira.nicira_nvp_plugin.QuantumPlugin.NvpPluginV2"
 NEUTRON_OVS_PLUGIN = \
     "neutron.plugins.openvswitch.ovs_neutron_plugin.OVSNeutronPluginV2"
-NEUTRON_ML2_PLUGIN = \
-    "neutron.plugins.ml2.plugin.Ml2Plugin"
 NEUTRON_NVP_PLUGIN = \
     "neutron.plugins.nicira.nicira_nvp_plugin.NeutronPlugin.NvpPluginV2"
 NEUTRON = 'neutron'
@@ -66,11 +64,7 @@ CORE_PLUGIN = {
 
 
 def core_plugin():
-    if (get_os_codename_install_source(config('openstack-origin')) >= 'icehouse'
-            and config('plugin') == OVS):
-        return NEUTRON_ML2_PLUGIN
-    else:
-        return CORE_PLUGIN[networking_name()][config('plugin')]
+    return CORE_PLUGIN[networking_name()][config('plugin')]
 
 
 class NetworkServiceContext(OSContextGenerator):
