@@ -276,6 +276,7 @@ def register_configs():
     plugin = config('plugin')
     name = networking_name()
     if plugin == 'ovs':
+        # NOTE: deal with switch to ML2 plugin for >= icehouse
         drop_config = NEUTRON_ML2_PLUGIN_CONF
         if release >= 'icehouse':
             drop_config = NEUTRON_OVS_PLUGIN_CONF
