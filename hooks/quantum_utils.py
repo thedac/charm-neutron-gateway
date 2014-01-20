@@ -24,6 +24,10 @@ from charmhelpers.contrib.openstack.utils import (
     get_hostname
 )
 
+from charmhelpers.contrib.openstack.neutron import (
+    determine_dkms_package
+)
+
 import charmhelpers.contrib.openstack.context as context
 import charmhelpers.contrib.openstack.templating as templating
 from charmhelpers.contrib.openstack.neutron import headers_package
@@ -101,16 +105,11 @@ GATEWAY_PKGS = {
     NEUTRON: NEUTRON_GATEWAY_PKGS,
 }
 
-EARLY_PACKAGES = {
-    OVS: ['openvswitch-datapath-dkms'],
-    NVP: []
-}
-
 
 def get_early_packages():
     '''Return a list of package for pre-install based on configured plugin'''
-    if config('plugin') in EARLY_PACKAGES:
-        pkgs = EARLY_PACKAGES[config('plugin')]
+    if config('plugin') in [OVS]:
+        pkgs = determine_dkms_package()
     else:
         return []
 

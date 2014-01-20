@@ -37,6 +37,7 @@ TO_PATCH = [
     'unit_private_ip',
     'relations_of_type',
     'service_stop',
+    'determine_dkms_package'
 ]
 
 
@@ -62,6 +63,7 @@ class TestQuantumUtils(CharmTestCase):
 
     def test_get_early_packages_ovs(self):
         self.config.return_value = 'ovs'
+        self.determine_dkms_package.return_value = ['openvswitch-datapath-dkms']
         self.assertEquals(
             quantum_utils.get_early_packages(),
             ['openvswitch-datapath-dkms', 'linux-headers-2.6.18'])
@@ -71,10 +73,6 @@ class TestQuantumUtils(CharmTestCase):
         self.assertEquals(
             quantum_utils.get_early_packages(),
             [])
-
-    @patch.object(quantum_utils, 'EARLY_PACKAGES')
-    def test_get_early_packages_no_dkms(self, _early_packages):
-        pass
 
     def test_get_early_packages_empty(self):
         self.config.return_value = 'noop'
