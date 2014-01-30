@@ -115,7 +115,7 @@ def amqp_joined(relation_id=None):
 @restart_on_change(restart_map())
 def amqp_departed():
     if 'amqp' not in CONFIGS.complete_contexts():
-        juju_log('amqp relation incomplete. Peer not ready?')
+        log('amqp relation incomplete. Peer not ready?')
         return
     CONFIGS.write_all()
 
