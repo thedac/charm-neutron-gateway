@@ -39,6 +39,7 @@ TO_PATCH = [
     'b64decode',
 ]
 
+
 def passthrough(value):
     return value
 
