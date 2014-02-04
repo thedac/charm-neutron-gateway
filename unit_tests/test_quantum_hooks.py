@@ -36,7 +36,11 @@ TO_PATCH = [
     'execd_preinstall',
     'lsb_release',
     'stop_services',
+    'b64decode',
 ]
+
+def passthrough(value):
+    return value
 
 
 class TestQuantumHooks(CharmTestCase):
@@ -47,6 +51,7 @@ class TestQuantumHooks(CharmTestCase):
         self.test_config.set('openstack-origin', 'cloud:precise-havana')
         self.test_config.set('plugin', 'ovs')
         self.lsb_release.return_value = {'DISTRIB_CODENAME': 'precise'}
+        self.b64decode.side_effect = passthrough
 
     def _call_hook(self, hookname):
         hooks.hooks.execute([
