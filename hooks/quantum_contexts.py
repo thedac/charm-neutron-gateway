@@ -9,6 +9,7 @@ from charmhelpers.core.hookenv import (
     relation_get,
     unit_get,
     cached,
+    log
 )
 from charmhelpers.fetch import (
     apt_install,
@@ -64,6 +65,10 @@ CORE_PLUGIN = {
 
 
 def core_plugin():
+    log('in core plugin')
+    log('plugin is %s' % str(config('plugin')))
+    log('networking is %s' % str(networking_name()))
+    log('result %s' % str(CORE_PLUGIN[networking_name()][config('plugin')]))
     return CORE_PLUGIN[networking_name()][config('plugin')]
 
 
@@ -135,6 +140,7 @@ class QuantumGatewayContext(OSContextGenerator):
             'core_plugin': core_plugin(),
             'plugin': config('plugin')
         }
+        log('context is %s' % str(ctxt))
         return ctxt
 
 
