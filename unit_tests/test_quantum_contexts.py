@@ -38,6 +38,7 @@ def patch_open():
 
 
 class _TestQuantumContext(CharmTestCase):
+
     def setUp(self):
         super(_TestQuantumContext, self).setUp(quantum_contexts, TO_PATCH)
         self.config.side_effect = self.test_config.get
@@ -75,6 +76,7 @@ class _TestQuantumContext(CharmTestCase):
 
 
 class TestQuantumSharedDBContext(_TestQuantumContext):
+
     def setUp(self):
         super(TestQuantumSharedDBContext, self).setUp()
         self.context = quantum_contexts.QuantumSharedDBContext()
@@ -95,6 +97,7 @@ class TestQuantumSharedDBContext(_TestQuantumContext):
 
 
 class TestNetworkServiceContext(_TestQuantumContext):
+
     def setUp(self):
         super(TestNetworkServiceContext, self).setUp()
         self.context = quantum_contexts.NetworkServiceContext()
@@ -127,6 +130,7 @@ class TestNetworkServiceContext(_TestQuantumContext):
 
 
 class TestExternalPortContext(CharmTestCase):
+
     def setUp(self):
         super(TestExternalPortContext, self).setUp(quantum_contexts,
                                                    TO_PATCH)
@@ -143,6 +147,7 @@ class TestExternalPortContext(CharmTestCase):
 
 
 class TestL3AgentContext(CharmTestCase):
+
     def setUp(self):
         super(TestL3AgentContext, self).setUp(quantum_contexts,
                                               TO_PATCH)
@@ -173,6 +178,7 @@ class TestL3AgentContext(CharmTestCase):
 
 
 class TestQuantumGatewayContext(CharmTestCase):
+
     def setUp(self):
         super(TestQuantumGatewayContext, self).setUp(quantum_contexts,
                                                      TO_PATCH)
@@ -199,6 +205,7 @@ class TestQuantumGatewayContext(CharmTestCase):
 
 
 class TestSharedSecret(CharmTestCase):
+
     def setUp(self):
         super(TestSharedSecret, self).setUp(quantum_contexts,
                                             TO_PATCH)
@@ -228,6 +235,7 @@ class TestSharedSecret(CharmTestCase):
 
 
 class TestHostIP(CharmTestCase):
+
     def setUp(self):
         super(TestHostIP, self).setUp(quantum_contexts,
                                       TO_PATCH)
@@ -261,6 +269,7 @@ class TestHostIP(CharmTestCase):
 
 
 class TestNetworkingName(CharmTestCase):
+
     def setUp(self):
         super(TestNetworkingName,
               self).setUp(quantum_contexts,

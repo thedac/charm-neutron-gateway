@@ -42,6 +42,7 @@ TO_PATCH = [
 
 
 class TestQuantumUtils(CharmTestCase):
+
     def setUp(self):
         super(TestQuantumUtils, self).setUp(quantum_utils, TO_PATCH)
         self.networking_name.return_value = 'neutron'
@@ -63,7 +64,8 @@ class TestQuantumUtils(CharmTestCase):
 
     def test_get_early_packages_ovs(self):
         self.config.return_value = 'ovs'
-        self.determine_dkms_package.return_value = ['openvswitch-datapath-dkms']
+        self.determine_dkms_package.return_value = [
+            'openvswitch-datapath-dkms']
         self.assertEquals(
             quantum_utils.get_early_packages(),
             ['openvswitch-datapath-dkms', 'linux-headers-2.6.18'])
@@ -254,6 +256,7 @@ network_context = {
 
 
 class DummyNetworkServiceContext():
+
     def __init__(self, return_value):
         self.return_value = return_value
 
@@ -385,6 +388,7 @@ cluster2 = ['cluster2-machine1.internal', 'cluster2-machine2.internal'
 
 
 class TestQuantumAgentReallocation(CharmTestCase):
+
     def setUp(self):
         if not neutronclient:
             raise self.skipTest('Skipping, no neutronclient installed')

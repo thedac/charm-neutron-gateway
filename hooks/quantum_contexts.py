@@ -66,7 +66,8 @@ CORE_PLUGIN = {
 
 
 def core_plugin():
-    if (get_os_codename_install_source(config('openstack-origin')) >= 'icehouse'
+    if (get_os_codename_install_source(config('openstack-origin'))
+            >= 'icehouse'
             and config('plugin') == OVS):
         return NEUTRON_ML2_PLUGIN
     else:
@@ -109,6 +110,7 @@ class NetworkServiceContext(OSContextGenerator):
 
 
 class L3AgentContext(OSContextGenerator):
+
     def __call__(self):
         ctxt = {}
         if config('run-internal-router') == 'leader':
@@ -126,6 +128,7 @@ class L3AgentContext(OSContextGenerator):
 
 
 class ExternalPortContext(OSContextGenerator):
+
     def __call__(self):
         if config('ext-port'):
             return {"ext_port": config('ext-port')}
@@ -134,6 +137,7 @@ class ExternalPortContext(OSContextGenerator):
 
 
 class QuantumGatewayContext(OSContextGenerator):
+
     def __call__(self):
         ctxt = {
             'shared_secret': get_shared_secret(),
