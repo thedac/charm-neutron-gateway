@@ -45,10 +45,6 @@ from quantum_utils import (
     reassign_agent_resources,
     stop_services
 )
-from quantum_contexts import (
-    DB_USER, QUANTUM_DB,
-    NOVA_DB_USER, NOVA_DB,
-)
 
 hooks = Hooks()
 CONFIGS = register_configs()
