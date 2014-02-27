@@ -151,9 +151,7 @@ NOVA_CONF = "/etc/nova/nova.conf"
 NOVA_CONFIG_FILES = {
     NOVA_CONF: {
         'hook_contexts': [context.AMQPContext(ssl_dir=NOVA_CONF_DIR),
-                          context.SharedDBContext(
-                                relation_prefix=config('database'),
-                                ssl_dir=NOVA_CONF_DIR),
+                          context.SharedDBContext(ssl_dir=NOVA_CONF_DIR),
                           NetworkServiceContext(),
                           QuantumGatewayContext()],
         'services': ['nova-api-metadata']
@@ -202,6 +200,8 @@ QUANTUM_OVS_CONFIG_FILES = {
     # TODO: Check to see if this is actually required
     QUANTUM_OVS_PLUGIN_CONF: {
         'hook_contexts': [context.SharedDBContext(
+                                database=config('neutron-database'),
+                                user=config('neutron-database-user'),
                                 relation_prefix=config('neutron-database'),
                                 ssl_dir=QUANTUM_CONF_DIR),
                           QuantumGatewayContext()],
@@ -231,6 +231,8 @@ NEUTRON_OVS_CONFIG_FILES = {
     # TODO: Check to see if this is actually required
     NEUTRON_OVS_PLUGIN_CONF: {
         'hook_contexts': [context.SharedDBContext(
+                                database=config('neutron-database'),
+                                user=config('neutron-database-user'),
                                 relation_prefix=config('neutron-database'),
                                 ssl_dir=QUANTUM_CONF_DIR),
                           QuantumGatewayContext()],
