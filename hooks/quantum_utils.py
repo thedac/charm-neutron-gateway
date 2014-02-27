@@ -325,8 +325,7 @@ def reassign_agent_resources():
         ''' Try to import neutronclient instead for havana+ '''
         from neutronclient.v2_0 import client
 
-    # TODO: Fixup for https keystone
-    auth_url = 'http://%(keystone_host)s:%(auth_port)s/v2.0' % env
+    auth_url = '%(auth_protocol)s://%(keystone_host)s:%(auth_port)s/v2.0' % env
     quantum = client.Client(username=env['service_username'],
                             password=env['service_password'],
                             tenant_name=env['service_tenant'],

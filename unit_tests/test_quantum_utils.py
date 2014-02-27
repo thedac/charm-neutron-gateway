@@ -251,7 +251,8 @@ network_context = {
     'service_tenant': 'baz',
     'region': 'foo-bar',
     'keystone_host': 'keystone',
-    'auth_port': 5000
+    'auth_port': 5000,
+    'auth_protocol': 'https'
 }
 
 
