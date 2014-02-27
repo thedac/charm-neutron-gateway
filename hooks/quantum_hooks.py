@@ -78,6 +78,11 @@ def install():
 def config_changed():
     if openstack_upgrade_available(get_common_package()):
         do_openstack_upgrade(CONFIGS)
+    # Re-run joined hooks as config might have changed
+    for r_id in relation_ids('shared-db'):
+        db_joined(relation_id=r_id)
+    for r_id in relation_ids('amqp'):
+        amqp_joined(relation_id=r_id)
     if valid_plugin():
         CONFIGS.write_all()
         configure_ovs()
@@ -97,13 +102,14 @@ def upgrade_charm():
 
 
 @hooks.hook('shared-db-relation-joined')
-def db_joined():
-    relation_set(quantum_username=DB_USER,
-                 quantum_database=QUANTUM_DB,
+def db_joined(relation_id=None):
+    relation_set(quantum_username=config('neutron-database-user'),
+                 quantum_database=config('neutron-database'),
                  quantum_hostname=unit_get('private-address'),
-                 nova_username=NOVA_DB_USER,
-                 nova_database=NOVA_DB,
-                 nova_hostname=unit_get('private-address'))
+                 nova_username=config('database-user'),
+                 nova_database=config('database'),
+                 nova_hostname=unit_get('private-address'),
+                 relation_id=relation_id)
 
 
 @hooks.hook('amqp-relation-joined')

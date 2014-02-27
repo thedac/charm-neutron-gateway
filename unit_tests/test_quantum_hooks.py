@@ -121,12 +121,13 @@ class TestQuantumHooks(CharmTestCase):
         self.unit_get.return_value = 'myhostname'
         self._call_hook('shared-db-relation-joined')
         self.relation_set.assert_called_with(
-            quantum_username='quantum',
-            quantum_database='quantum',
+            quantum_username='neutron',
+            quantum_database='neutron',
             quantum_hostname='myhostname',
             nova_username='nova',
             nova_database='nova',
             nova_hostname='myhostname',
+            relation_id=None
         )
 
     def test_amqp_joined(self):
