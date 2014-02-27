@@ -110,23 +110,17 @@ class TestQuantumHooks(CharmTestCase):
     def test_upgrade_charm(self):
         _install = self.patch('install')
         _config_changed = self.patch('config_changed')
-        _amqp_joined = self.patch('amqp_joined')
-        self.relation_ids.return_value = ['amqp:0']
         self._call_hook('upgrade-charm')
         self.assertTrue(_install.called)
         self.assertTrue(_config_changed.called)
-        _amqp_joined.assert_called_with(relation_id='amqp:0')
 
     def test_db_joined(self):
         self.unit_get.return_value = 'myhostname'
         self._call_hook('shared-db-relation-joined')
         self.relation_set.assert_called_with(
-            quantum_username='neutron',
-            quantum_database='neutron',
-            quantum_hostname='myhostname',
-            nova_username='nova',
-            nova_database='nova',
-            nova_hostname='myhostname',
+            username='nova',
+            database='nova',
+            hostname='myhostname',
             relation_id=None
         )
 

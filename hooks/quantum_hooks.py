@@ -93,22 +93,15 @@ def config_changed():
 
 @hooks.hook('upgrade-charm')
 def upgrade_charm():
-    # NOTE(jamespage): Deal with changes to rabbitmq configuration for
-    # common virtual host across services
-    for r_id in relation_ids('amqp'):
-        amqp_joined(relation_id=r_id)
     install()
     config_changed()
 
 
 @hooks.hook('shared-db-relation-joined')
 def db_joined(relation_id=None):
-    relation_set(quantum_username=config('neutron-database-user'),
-                 quantum_database=config('neutron-database'),
-                 quantum_hostname=unit_get('private-address'),
-                 nova_username=config('database-user'),
-                 nova_database=config('database'),
-                 nova_hostname=unit_get('private-address'),
+    relation_set(username=config('database-user'),
+                 database=config('database'),
+                 hostname=unit_get('private-address'),
                  relation_id=relation_id)
 
 

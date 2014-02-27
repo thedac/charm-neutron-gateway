@@ -197,14 +197,8 @@ QUANTUM_OVS_CONFIG_FILES = {
         'hook_contexts': [NetworkServiceContext()],
         'services': ['quantum-l3-agent']
     },
-    # TODO: Check to see if this is actually required
     QUANTUM_OVS_PLUGIN_CONF: {
-        'hook_contexts': [context.SharedDBContext(
-                                database=config('neutron-database'),
-                                user=config('neutron-database-user'),
-                                relation_prefix=config('neutron-database'),
-                                ssl_dir=QUANTUM_CONF_DIR),
-                          QuantumGatewayContext()],
+        'hook_contexts': [QuantumGatewayContext()],
         'services': ['quantum-plugin-openvswitch-agent']
     },
     EXT_PORT_CONF: {
@@ -228,14 +222,8 @@ NEUTRON_OVS_CONFIG_FILES = {
                           L3AgentContext()],
         'services': ['neutron-l3-agent']
     },
-    # TODO: Check to see if this is actually required
     NEUTRON_OVS_PLUGIN_CONF: {
-        'hook_contexts': [context.SharedDBContext(
-                                database=config('neutron-database'),
-                                user=config('neutron-database-user'),
-                                relation_prefix=config('neutron-database'),
-                                ssl_dir=QUANTUM_CONF_DIR),
-                          QuantumGatewayContext()],
+        'hook_contexts': [QuantumGatewayContext()],
         'services': ['neutron-plugin-openvswitch-agent']
     },
     EXT_PORT_CONF: {
