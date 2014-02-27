@@ -1,4 +1,6 @@
 from mock import MagicMock, patch, call
+import charmhelpers.core.hookenv as hookenv
+hookenv.config = MagicMock()
 import quantum_utils as utils
 _register_configs = utils.register_configs
 _restart_map = utils.restart_map
@@ -53,6 +55,7 @@ class TestQuantumHooks(CharmTestCase):
         self.test_config.set('plugin', 'ovs')
         self.lsb_release.return_value = {'DISTRIB_CODENAME': 'precise'}
         self.b64decode.side_effect = passthrough
+        hookenv.config.side_effect = self.test_config.get
 
     def _call_hook(self, hookname):
         hooks.hooks.execute([

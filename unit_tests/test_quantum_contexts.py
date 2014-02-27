@@ -74,26 +74,6 @@ class _TestQuantumContext(CharmTestCase):
         self.assertEquals(self.context(), self.data_result)
 
 
-class TestQuantumSharedDBContext(_TestQuantumContext):
-    def setUp(self):
-        super(TestQuantumSharedDBContext, self).setUp()
-        self.context = quantum_contexts.QuantumSharedDBContext()
-        self.test_relation.set(
-            {'db_host': '10.5.0.1',
-             'nova_password': 'novapass',
-             'quantum_password': 'quantumpass'}
-        )
-        self.data_result = {
-            'database_host': '10.5.0.1',
-            'nova_user': 'nova',
-            'nova_password': 'novapass',
-            'nova_db': 'nova',
-            'quantum_user': 'quantum',
-            'quantum_password': 'quantumpass',
-            'quantum_db': 'quantum'
-        }
-
-
 class TestNetworkServiceContext(_TestQuantumContext):
     def setUp(self):
         super(TestNetworkServiceContext, self).setUp()

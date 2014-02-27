@@ -15,7 +15,7 @@ from charmhelpers.fetch import (
 )
 from charmhelpers.contrib.openstack.context import (
     OSContextGenerator,
-    context_complete
+    context_complete,
 )
 from charmhelpers.contrib.openstack.utils import (
     get_os_codename_install_source
@@ -136,29 +136,6 @@ class QuantumGatewayContext(OSContextGenerator):
             'plugin': config('plugin')
         }
         return ctxt
-
-
-class QuantumSharedDBContext(OSContextGenerator):
-    interfaces = ['shared-db']
-
-    def __call__(self):
-        for rid in relation_ids('shared-db'):
-            for unit in related_units(rid):
-                ctxt = {
-                    'database_host': relation_get('db_host', rid=rid,
-                                                  unit=unit),
-                    'quantum_db': QUANTUM_DB,
-                    'quantum_user': DB_USER,
-                    'quantum_password': relation_get('quantum_password',
-                                                     rid=rid, unit=unit),
-                    'nova_db': NOVA_DB,
-                    'nova_user': NOVA_DB_USER,
-                    'nova_password': relation_get('nova_password', rid=rid,
-                                                  unit=unit)
-                }
-                if context_complete(ctxt):
-                    return ctxt
-        return {}
 
 
 @cached
