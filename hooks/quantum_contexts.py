@@ -73,29 +73,22 @@ class NetworkServiceContext(OSContextGenerator):
     def __call__(self):
         for rid in relation_ids('quantum-network-service'):
             for unit in related_units(rid):
+                rdata = relation_get(rid=rid, unit=unit)
                 ctxt = {
-                    'keystone_host': relation_get('keystone_host',
-                                                  rid=rid, unit=unit),
-                    'service_port': relation_get('service_port', rid=rid,
-                                                 unit=unit),
-                    'auth_port': relation_get('auth_port', rid=rid, unit=unit),
-                    'service_tenant': relation_get('service_tenant',
-                                                   rid=rid, unit=unit),
-                    'service_username': relation_get('service_username',
-                                                     rid=rid, unit=unit),
-                    'service_password': relation_get('service_password',
-                                                     rid=rid, unit=unit),
-                    'quantum_host': relation_get('quantum_host',
-                                                 rid=rid, unit=unit),
-                    'quantum_port': relation_get('quantum_port',
-                                                 rid=rid, unit=unit),
-                    'quantum_url': relation_get('quantum_url',
-                                                rid=rid, unit=unit),
-                    'region': relation_get('region',
-                                           rid=rid, unit=unit),
-                    # XXX: Hard-coded http.
-                    'service_protocol': 'http',
-                    'auth_protocol': 'http',
+                    'keystone_host': rdata.get('keystone_host'),
+                    'service_port': rdata.get('service_port'),
+                    'auth_port': rdata.get('auth_port'),
+                    'service_tenant': rdata.get('service_tenant'),
+                    'service_username': rdata.get('service_username'),
+                    'service_password': rdata.get('service_password'),
+                    'quantum_host': rdata.get('quantum_host'),
+                    'quantum_port': rdata.get('quantum_port'),
+                    'quantum_url': rdata.get('quantum_url'),
+                    'region': rdata.get('region'),
+                    'service_protocol':
+                    rdata.get('service_protocol') or 'http',
+                    'auth_protocol':
+                    rdata.get('auth_protocol') or 'http',
                 }
                 if context_complete(ctxt):
                     return ctxt
