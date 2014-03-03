@@ -90,7 +90,8 @@ NEUTRON_GATEWAY_PKGS = {
         "neutron-dhcp-agent",
         'python-mysqldb',
         'python-oslo.config',  # Force upgrade
-        "nova-api-metadata"
+        "nova-api-metadata",
+        "neutron-plugin-metering-agent"
     ],
     NVP: [
         "neutron-dhcp-agent",
@@ -142,6 +143,7 @@ NEUTRON_CONF = "/etc/neutron/neutron.conf"
 NEUTRON_L3_AGENT_CONF = "/etc/neutron/l3_agent.ini"
 NEUTRON_DHCP_AGENT_CONF = "/etc/neutron/dhcp_agent.ini"
 NEUTRON_METADATA_AGENT_CONF = "/etc/neutron/metadata_agent.ini"
+NEUTRON_METERING_AGENT_CONF = "/etc/neutron/metering_agent.ini"
 
 NOVA_CONF = "/etc/nova/nova.conf"
 
@@ -191,7 +193,8 @@ QUANTUM_OVS_CONFIG_FILES = {
                      'quantum-plugin-openvswitch-agent']
     },
     QUANTUM_L3_AGENT_CONF: {
-        'hook_contexts': [NetworkServiceContext()],
+        'hook_contexts': [NetworkServiceContext(),
+                          QuantumGatewayContext()],
         'services': ['quantum-l3-agent']
     },
     # TODO: Check to see if this is actually required
@@ -214,12 +217,18 @@ NEUTRON_OVS_CONFIG_FILES = {
         'services': ['neutron-l3-agent',
                      'neutron-dhcp-agent',
                      'neutron-metadata-agent',
-                     'neutron-plugin-openvswitch-agent']
+                     'neutron-plugin-openvswitch-agent',
+                     'neutron-metering-agent']
     },
     NEUTRON_L3_AGENT_CONF: {
         'hook_contexts': [NetworkServiceContext(),
-                          L3AgentContext()],
+                          L3AgentContext(),
+                          QuantumGatewayContext()],
         'services': ['neutron-l3-agent']
+    },
+    NEUTRON_METERING_AGENT_CONF: {
+        'hook_contexts': [QuantumGatewayContext()],
+        'services': ['neutron-metering-agent']
     },
     # TODO: Check to see if this is actually required
     NEUTRON_OVS_PLUGIN_CONF: {
