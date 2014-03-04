@@ -44,8 +44,9 @@ options:
       with run-internal-router.
   rabbit-user:
     type: string
+    description: RabbitMQ user
     default: neutron
   rabbit-vhost:
     type: string
+    description: RabbitMQ Virtual Host
     default: openstack
-

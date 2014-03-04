@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+from base64 import b64decode
+
 from charmhelpers.core.hookenv import (
     log, ERROR, WARNING,
     config,
@@ -134,7 +136,8 @@ def db_amqp_changed():
 def nm_changed():
     CONFIGS.write_all()
     if relation_get('ca_cert'):
-        install_ca_cert(relation_get('ca_cert'))
+        ca_crt = b64decode(relation_get('ca_cert'))
+        install_ca_cert(ca_crt)
 
 
 @hooks.hook("cluster-relation-departed")
