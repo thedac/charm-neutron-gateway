@@ -132,7 +132,7 @@ class ExternalPortContext(OSContextGenerator):
         for nic in list_nics(['eth', 'bond']):
             hwaddrs[get_nic_hwaddr(nic)] = nic
         mac_regex = re.compile(r'([0-9A-F]{2}[:-]){5}([0-9A-F]{2})', re.I)
-        for entry in config('ext-port').split(','):
+        for entry in config('ext-port').split():
             entry = entry.strip()
             if re.match(mac_regex, entry):
                 if entry in hwaddrs:

@@ -56,10 +56,10 @@ gateways then is can be specified by simply setting ext-port to the nic id e.g.
         ext-port: eth2
 
 However, if it varies between hosts then the mac addresses of the external
-nics for each host can be passed as a comma seperated list e.g.
+nics for each host can be passed as a space seperated list e.g.
 
     quantum-gateway:
-        ext-port: <MAC ext port host 1>, <MAC ext port host 2>, <MAC ext port host 3>
+        ext-port: <MAC ext port host 1> <MAC ext port host 2> <MAC ext port host 3>
 
 If multiple floating pools are needed then an L3 agent (which corresponds to
 a quantum-gateway for the sake of this charm) is needed for each one. Each
