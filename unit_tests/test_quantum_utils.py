@@ -24,7 +24,7 @@ TO_PATCH = [
     'get_os_codename_install_source',
     'get_os_codename_package',
     'apt_update',
-    'apt_install',
+    'apt_upgrade',
     'configure_installation_source',
     'log',
     'add_bridge',
@@ -122,8 +122,7 @@ class TestQuantumUtils(CharmTestCase):
             '--option', 'Dpkg::Options::=--force-confnew',
             '--option', 'Dpkg::Options::=--force-confdef',
         ]
-        self.apt_install.assert_called_with(
-            packages=quantum_utils.GATEWAY_PKGS['neutron']['ovs'],
+        self.apt_upgrade.assert_called_with(
             options=dpkg_opts, fatal=True
         )
         self.configure_installation_source.assert_called_with(

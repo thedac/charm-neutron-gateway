@@ -9,7 +9,7 @@ from charmhelpers.core.hookenv import (
     unit_private_ip
 )
 from charmhelpers.fetch import (
-    apt_install,
+    apt_upgrade,
     apt_update
 )
 from charmhelpers.contrib.network.ovs import (
@@ -436,11 +436,7 @@ def do_openstack_upgrade(configs):
         '--option', 'Dpkg::Options::=--force-confdef',
     ]
     apt_update(fatal=True)
-    apt_install(packages=get_early_packages(),
-                options=dpkg_opts,
-                fatal=True)
-    apt_install(packages=get_packages(),
-                options=dpkg_opts,
+    apt_upgrade(options=dpkg_opts,
                 fatal=True)
 
     # set CONFIGS to load templates from new release
