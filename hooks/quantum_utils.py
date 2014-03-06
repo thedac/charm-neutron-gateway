@@ -1,6 +1,7 @@
 from charmhelpers.core.host import (
     service_running,
-    service_stop
+    service_stop,
+    service_restart
 )
 from charmhelpers.core.hookenv import (
     log,
@@ -417,6 +418,14 @@ def reassign_agent_resources():
         index += 1
 
 
+def services():
+    ''' Returns a list of services associate with this charm '''
+    _services = []
+    for v in restart_map().values():
+        _services = _services + v
+    return list(set(_services))
+
+
 def do_openstack_upgrade(configs):
     """
     Perform an upgrade.  Takes care of upgrading packages, rewriting
@@ -441,6 +450,9 @@ def do_openstack_upgrade(configs):
 
     # set CONFIGS to load templates from new release
     configs.set_release(openstack_release=new_os_rel)
+    new_configs = register_configs()
+    new_configs.write_all()
+    [service_restart(s) for s in services()]
 
 
 def configure_ovs():

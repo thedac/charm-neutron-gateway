@@ -37,7 +37,8 @@ TO_PATCH = [
     'unit_private_ip',
     'relations_of_type',
     'service_stop',
-    'determine_dkms_package'
+    'determine_dkms_package',
+    'service_restart'
 ]
 
 
@@ -123,7 +124,7 @@ class TestQuantumUtils(CharmTestCase):
             '--option', 'Dpkg::Options::=--force-confdef',
         ]
         self.apt_upgrade.assert_called_with(
-            options=dpkg_opts, fatal=True
+            options=dpkg_opts, fatal=True, dist=True
         )
         self.configure_installation_source.assert_called_with(
             'cloud:precise-havana'
