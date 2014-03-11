@@ -158,6 +158,7 @@ class TestQuantumUtils(CharmTestCase):
             quantum_utils.NEUTRON_METADATA_AGENT_CONF:
             ['neutron-metadata-agent'],
             quantum_utils.NEUTRON_DHCP_AGENT_CONF: ['neutron-dhcp-agent'],
+            quantum_utils.NEUTRON_DNSMASQ_CONF: ['neutron-dhcp-agent'],
             quantum_utils.NEUTRON_CONF: ['neutron-l3-agent',
                                          'neutron-dhcp-agent',
                                          'neutron-metadata-agent',
@@ -209,6 +210,7 @@ class TestQuantumUtils(CharmTestCase):
         self.config.return_value = 'nvp'
         ex_map = {
             quantum_utils.NEUTRON_DHCP_AGENT_CONF: ['neutron-dhcp-agent'],
+            quantum_utils.NEUTRON_DNSMASQ_CONF: ['neutron-dhcp-agent'],
             quantum_utils.NOVA_CONF: ['nova-api-metadata'],
             quantum_utils.NEUTRON_CONF: ['neutron-dhcp-agent',
                                          'neutron-metadata-agent'],

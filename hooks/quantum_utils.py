@@ -135,11 +135,13 @@ TEMPLATES = 'templates'
 QUANTUM_CONF = "/etc/quantum/quantum.conf"
 QUANTUM_L3_AGENT_CONF = "/etc/quantum/l3_agent.ini"
 QUANTUM_DHCP_AGENT_CONF = "/etc/quantum/dhcp_agent.ini"
+QUANTUM_DNSMASQ_CONF = "/etc/quantum/dnsmasq.conf"
 QUANTUM_METADATA_AGENT_CONF = "/etc/quantum/metadata_agent.ini"
 
 NEUTRON_CONF = "/etc/neutron/neutron.conf"
 NEUTRON_L3_AGENT_CONF = "/etc/neutron/l3_agent.ini"
 NEUTRON_DHCP_AGENT_CONF = "/etc/neutron/dhcp_agent.ini"
+NEUTRON_DNSMASQ_CONF = "/etc/neutron/dnsmasq.conf"
 NEUTRON_METADATA_AGENT_CONF = "/etc/neutron/metadata_agent.ini"
 
 NOVA_CONF = "/etc/nova/nova.conf"
@@ -159,6 +161,10 @@ QUANTUM_SHARED_CONFIG_FILES = {
         'hook_contexts': [QuantumGatewayContext()],
         'services': ['quantum-dhcp-agent']
     },
+    QUANTUM_DNSMASQ_CONF: {
+        'hook_contexts': [QuantumGatewayContext()],
+        'services': ['quantum-dhcp-agent']
+    },
     QUANTUM_METADATA_AGENT_CONF: {
         'hook_contexts': [NetworkServiceContext(),
                           QuantumGatewayContext()],
@@ -169,6 +175,10 @@ QUANTUM_SHARED_CONFIG_FILES.update(NOVA_CONFIG_FILES)
 
 NEUTRON_SHARED_CONFIG_FILES = {
     NEUTRON_DHCP_AGENT_CONF: {
+        'hook_contexts': [QuantumGatewayContext()],
+        'services': ['neutron-dhcp-agent']
+    },
+    NEUTRON_DNSMASQ_CONF: {
         'hook_contexts': [QuantumGatewayContext()],
         'services': ['neutron-dhcp-agent']
     },
