@@ -133,7 +133,8 @@ class QuantumGatewayContext(OSContextGenerator):
             'shared_secret': get_shared_secret(),
             'local_ip': get_host_ip(),  # XXX: data network impact
             'core_plugin': core_plugin(),
-            'plugin': config('plugin')
+            'plugin': config('plugin'),
+            'instance_mtu': config('instance-mtu')
         }
         return ctxt
 
