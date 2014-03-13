@@ -156,12 +156,28 @@ NOVA_CONFIG_FILES = {
     },
 }
 
+
+DNSMASQ_CONFIG_FILES = {
+    QUANTUM: {
+        OVS: {
+            QUANTUM_DNSMASQ_CONF: {
+                'hook_contexts': [QuantumGatewayContext()],
+                'services': ['quantum-dhcp-agent']
+            },
+        },
+    },
+    NEUTRON: {
+        OVS: {
+            NEUTRON_DNSMASQ_CONF: {
+                'hook_contexts': [QuantumGatewayContext()],
+                'services': ['neutron-dhcp-agent']
+            },
+        },
+    },
+}
+
 QUANTUM_SHARED_CONFIG_FILES = {
     QUANTUM_DHCP_AGENT_CONF: {
-        'hook_contexts': [QuantumGatewayContext()],
-        'services': ['quantum-dhcp-agent']
-    },
-    QUANTUM_DNSMASQ_CONF: {
         'hook_contexts': [QuantumGatewayContext()],
         'services': ['quantum-dhcp-agent']
     },
@@ -175,10 +191,6 @@ QUANTUM_SHARED_CONFIG_FILES.update(NOVA_CONFIG_FILES)
 
 NEUTRON_SHARED_CONFIG_FILES = {
     NEUTRON_DHCP_AGENT_CONF: {
-        'hook_contexts': [QuantumGatewayContext()],
-        'services': ['neutron-dhcp-agent']
-    },
-    NEUTRON_DNSMASQ_CONF: {
         'hook_contexts': [QuantumGatewayContext()],
         'services': ['neutron-dhcp-agent']
     },
@@ -282,7 +294,11 @@ def register_configs():
     for conf in CONFIG_FILES[name][plugin]:
         configs.register(conf,
                          CONFIG_FILES[name][plugin][conf]['hook_contexts'])
-
+    if config('instance-mtu') and config('plugin') == OVS:
+        for dnsmasq_conf in DNSMASQ_CONFIG_FILES[name][plugin]:
+            configs.register(dnsmasq_conf,
+                             DNSMASQ_CONFIG_FILES[name][plugin]
+                             [dnsmasq_conf]['hook_contexts'])
     return configs
 
 
@@ -312,6 +328,14 @@ def restart_map():
             svcs.append(svc)
         if svcs:
             _map[f] = svcs
+
+    if config('instance-mtu') and config('plugin') == OVS:
+        for f, ctxt in DNSMASQ_CONFIG_FILES[name][config('plugin')].iteritems():
+            svcs = []
+            for svc in ctxt['services']:
+                svcs.append(svc)
+            if svcs:
+                _map[f] = svcs
     return _map
 
 

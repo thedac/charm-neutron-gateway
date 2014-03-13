@@ -50,3 +50,9 @@ options:
     type: string
     description: RabbitMQ Virtual Host
     default: openstack
+  instance-mtu:
+    type: int
+    description: |
+      Configures DHCP agent to provide MTU value to instances. If set to 0 this
+      functionality is disabled.
+    default: 0

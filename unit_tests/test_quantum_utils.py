@@ -131,7 +131,12 @@ class TestQuantumUtils(CharmTestCase):
         )
 
     def test_register_configs_ovs(self):
-        self.config.return_value = 'ovs'
+        def side_effect(arg):
+            return_values = {'plugin': 'ovs',
+                             'instance-mtu': 0,
+                             'openstack-origin': 'foo'}
+            return return_values[arg]
+        self.config.side_effect = side_effect
         configs = quantum_utils.register_configs()
         confs = [quantum_utils.NEUTRON_DHCP_AGENT_CONF,
                  quantum_utils.NEUTRON_METADATA_AGENT_CONF,
@@ -148,8 +153,62 @@ class TestQuantumUtils(CharmTestCase):
                                           ['hook_contexts']
             )
 
+    def test_register_configs_ovs_mtu(self):
+        def side_effect(arg):
+            return_values = {'plugin': 'ovs',
+                             'instance-mtu': 1400,
+                             'openstack-origin': 'foo'}
+            return return_values[arg]
+        self.config.side_effect = side_effect
+        configs = quantum_utils.register_configs()
+        confs = [quantum_utils.NEUTRON_DHCP_AGENT_CONF,
+                 quantum_utils.NEUTRON_METADATA_AGENT_CONF,
+                 quantum_utils.NOVA_CONF,
+                 quantum_utils.NEUTRON_CONF,
+                 quantum_utils.NEUTRON_L3_AGENT_CONF,
+                 quantum_utils.NEUTRON_OVS_PLUGIN_CONF,
+                 quantum_utils.EXT_PORT_CONF]
+        dnsmasq_confs = [quantum_utils.NEUTRON_DNSMASQ_CONF]
+        print configs.register.calls()
+        for conf in confs:
+            configs.register.assert_any_call(
+                conf,
+                quantum_utils.CONFIG_FILES['neutron'][quantum_utils.OVS]
+                                          [conf]['hook_contexts']
+            )
+        for dnsmasq_conf in dnsmasq_confs:
+            configs.register.assert_any_call(
+                dnsmasq_conf,
+                quantum_utils.DNSMASQ_CONFIG_FILES['neutron']
+                [quantum_utils.OVS][dnsmasq_conf]
+                ['hook_contexts']
+            )
+
     def test_restart_map_ovs(self):
-        self.config.return_value = 'ovs'
+        def side_effect(arg):
+            return_values = {'plugin': 'ovs', 'instance-mtu': 0}
+            return return_values[arg]
+        self.config.side_effect = side_effect
+        ex_map = {
+            quantum_utils.NEUTRON_L3_AGENT_CONF: ['neutron-l3-agent'],
+            quantum_utils.NEUTRON_OVS_PLUGIN_CONF:
+            ['neutron-plugin-openvswitch-agent'],
+            quantum_utils.NOVA_CONF: ['nova-api-metadata'],
+            quantum_utils.NEUTRON_METADATA_AGENT_CONF:
+            ['neutron-metadata-agent'],
+            quantum_utils.NEUTRON_DHCP_AGENT_CONF: ['neutron-dhcp-agent'],
+            quantum_utils.NEUTRON_CONF: ['neutron-l3-agent',
+                                         'neutron-dhcp-agent',
+                                         'neutron-metadata-agent',
+                                         'neutron-plugin-openvswitch-agent']
+        }
+        self.assertEquals(quantum_utils.restart_map(), ex_map)
+
+    def test_restart_map_ovs_mtu(self):
+        def side_effect(arg):
+            return_values = {'plugin': 'ovs', 'instance-mtu': 1400}
+            return return_values[arg]
+        self.config.side_effect = side_effect
         ex_map = {
             quantum_utils.NEUTRON_L3_AGENT_CONF: ['neutron-l3-agent'],
             quantum_utils.NEUTRON_OVS_PLUGIN_CONF:
@@ -210,7 +269,6 @@ class TestQuantumUtils(CharmTestCase):
         self.config.return_value = 'nvp'
         ex_map = {
             quantum_utils.NEUTRON_DHCP_AGENT_CONF: ['neutron-dhcp-agent'],
-            quantum_utils.NEUTRON_DNSMASQ_CONF: ['neutron-dhcp-agent'],
             quantum_utils.NOVA_CONF: ['nova-api-metadata'],
             quantum_utils.NEUTRON_CONF: ['neutron-dhcp-agent',
                                          'neutron-metadata-agent'],
