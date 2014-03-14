@@ -274,6 +274,7 @@ class DummyNetworkServiceContext():
 
 
 class DummyExternalPortContext():
+
     def __init__(self, return_value):
         self.return_value = return_value
 

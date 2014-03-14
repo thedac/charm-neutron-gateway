@@ -156,6 +156,7 @@ class TestExternalPortContext(CharmTestCase):
         }
         absent_macs = "aa:a5:ae:ae:ab:a4 "
         config_macs = absent_macs + " " + machine_macs['eth2']
+
         def get_hwaddr(arg):
             return machine_macs[arg]
         self.config.return_value = config_macs
@@ -165,8 +166,7 @@ class TestExternalPortContext(CharmTestCase):
                           {'ext_port': 'eth2'})
         self.config.return_value = absent_macs
         self.assertEquals(quantum_contexts.ExternalPortContext()(),
-                         None)
-                           
+                          None)
 
 
 class TestL3AgentContext(CharmTestCase):
