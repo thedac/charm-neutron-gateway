@@ -135,7 +135,6 @@ TEMPLATES = 'templates'
 QUANTUM_CONF = "/etc/quantum/quantum.conf"
 QUANTUM_L3_AGENT_CONF = "/etc/quantum/l3_agent.ini"
 QUANTUM_DHCP_AGENT_CONF = "/etc/quantum/dhcp_agent.ini"
-QUANTUM_DNSMASQ_CONF = "/etc/quantum/dnsmasq.conf"
 QUANTUM_METADATA_AGENT_CONF = "/etc/quantum/metadata_agent.ini"
 
 NEUTRON_CONF = "/etc/neutron/neutron.conf"
@@ -158,10 +157,6 @@ NOVA_CONFIG_FILES = {
 
 QUANTUM_SHARED_CONFIG_FILES = {
     QUANTUM_DHCP_AGENT_CONF: {
-        'hook_contexts': [QuantumGatewayContext()],
-        'services': ['quantum-dhcp-agent']
-    },
-    QUANTUM_DNSMASQ_CONF: {
         'hook_contexts': [QuantumGatewayContext()],
         'services': ['quantum-dhcp-agent']
     },

@@ -74,7 +74,8 @@ When using Open vSwitch plugin with GRE tunnels default MTU of 1500
 can cause problems due to GRE overhead. One solution is to increase 
 MTU on physical hosts and network equipment.
 When above solution is not possible or practical charm's instance-mtu
-option can be used to reduce instances MTU.
+option can be used to reduce instances MTU. Note that this option
+was added in havana and will be ignored in older releases.
 MTU value of 1400 is what OpenStack Open vSwitch documentatino suggests:
 [Openstack documentation](http://docs.openstack.org/admin-guide-cloud/content/openvswitch_plugin.html)
 
