@@ -180,13 +180,19 @@ class TestQuantumGatewayContext(CharmTestCase):
     @patch.object(quantum_contexts, 'get_shared_secret')
     @patch.object(quantum_contexts, 'get_host_ip')
     def test_all(self, _host_ip, _secret):
-        self.config.return_value = 'ovs'
+        def side_effect(arg):
+            return_values = {'plugin': 'ovs',
+                             'instance-mtu': 1420,
+                             'openstack-origin': 'foo'}
+            return return_values[arg]
+        self.config.side_effect = side_effect
         self.get_os_codename_install_source.return_value = 'folsom'
         _host_ip.return_value = '10.5.0.1'
         _secret.return_value = 'testsecret'
         self.assertEquals(quantum_contexts.QuantumGatewayContext()(), {
             'shared_secret': 'testsecret',
             'local_ip': '10.5.0.1',
+            'instance_mtu': 1420,
             'core_plugin': "quantum.plugins.openvswitch.ovs_quantum_plugin."
                            "OVSQuantumPluginV2",
             'plugin': 'ovs'

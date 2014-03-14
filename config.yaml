@@ -53,6 +53,9 @@ options:
   instance-mtu:
     type: int
     description: |
-      Configures DHCP agent to provide MTU value to instances. If set to 0 this
-      functionality is disabled.
-    default: 0
+      If set configures DHCP agent to provide MTU value to instances.
+      For example to set DHCP to provide MTU of 1400:
+      1400 - set MTU on instances to 1400 bytes
+      1520 - set MTU to 1520. Note that this might require similar
+             change on compute nodes and switches
+

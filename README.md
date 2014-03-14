@@ -70,6 +70,14 @@ network id can be set differently for each gateway e.g.
     juju set quantum-gateway-extnet1 "external-network-id=<extnet1 id>"
     juju set quantum-gateway-extnet2 "external-network-id=<extnet2 id>"
 
+When using Open vSwitch plugin with GRE tunnels default MTU of 1500 
+can cause problems due to GRE overhead. One solution is to increase 
+MTU on physical hosts and network equipment.
+When above solution is not possible or practical charm's instance-mtu
+option can be used to reduce instances MTU.
+MTU value of 1400 is what OpenStack Open vSwitch documentatino suggests:
+[Openstack documentation](http://docs.openstack.org/admin-guide-cloud/content/openvswitch_plugin.html)
+
 See upstream [Neutron multi extnet](http://docs.openstack.org/trunk/config-reference/content/adv_cfg_l3_agent_multi_extnet.html)
 
 TODO
