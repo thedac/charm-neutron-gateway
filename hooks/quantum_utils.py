@@ -11,7 +11,8 @@ from charmhelpers.core.hookenv import (
 )
 from charmhelpers.fetch import (
     apt_upgrade,
-    apt_update
+    apt_update,
+    apt_install,
 )
 from charmhelpers.contrib.network.ovs import (
     add_bridge,
@@ -447,11 +448,14 @@ def do_openstack_upgrade(configs):
     apt_update(fatal=True)
     apt_upgrade(options=dpkg_opts,
                 fatal=True, dist=True)
+    apt_install(get_early_packages(), fatal=True)
+    apt_install(get_packages(), fatal=True)
 
     # set CONFIGS to load templates from new release
     configs.set_release(openstack_release=new_os_rel)
-    new_configs = register_configs()
-    new_configs.write_all()
+    configs.write_all()
+    # NOTE(jamespage) still need to deal with quantum->neutron
+    # and ML2 in icehouse
     [service_restart(s) for s in services()]
 
 

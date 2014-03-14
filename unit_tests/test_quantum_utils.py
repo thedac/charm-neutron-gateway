@@ -25,6 +25,7 @@ TO_PATCH = [
     'get_os_codename_package',
     'apt_update',
     'apt_upgrade',
+    'apt_install',
     'configure_installation_source',
     'log',
     'add_bridge',
