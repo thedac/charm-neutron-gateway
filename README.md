@@ -54,6 +54,22 @@ See upstream [Neutron multi extnet](http://docs.openstack.org/trunk/config-refer
 Configuration Options
 ---------------------
 
+External Port Configuration
+===========================
+
+If the port to be used for external traffic is consistent accross all physical
+servers then is can be specified by simply setting ext-port to the nic id:
+
+    quantum-gateway:
+        ext-port: eth2
+
+However, if it varies between hosts then the mac addresses of the external
+nics for each host can be passed as a space seperated list:
+
+    quantum-gateway:
+        ext-port: <MAC ext port host 1> <MAC ext port host 2> <MAC ext port host 3>
+
+
 Multiple Floating Pools
 =======================
 

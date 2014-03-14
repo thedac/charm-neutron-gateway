@@ -2,6 +2,10 @@
 import os
 import uuid
 import socket
+from charmhelpers.core.host import (
+    list_nics,
+    get_nic_hwaddr
+)
 from charmhelpers.core.hookenv import (
     config,
     relation_ids,
@@ -23,6 +27,7 @@ from charmhelpers.contrib.openstack.utils import (
 from charmhelpers.contrib.hahelpers.cluster import(
     eligible_leader
 )
+import re
 
 DB_USER = "quantum"
 QUANTUM_DB = "quantum"
@@ -121,10 +126,20 @@ class L3AgentContext(OSContextGenerator):
 
 class ExternalPortContext(OSContextGenerator):
     def __call__(self):
-        if config('ext-port'):
-            return {"ext_port": config('ext-port')}
-        else:
+        if not config('ext-port'):
             return None
+        hwaddrs = {}
+        for nic in list_nics(['eth', 'bond']):
+            hwaddrs[get_nic_hwaddr(nic)] = nic
+        mac_regex = re.compile(r'([0-9A-F]{2}[:-]){5}([0-9A-F]{2})', re.I)
+        for entry in config('ext-port').split():
+            entry = entry.strip()
+            if re.match(mac_regex, entry):
+                if entry in hwaddrs:
+                    return {"ext_port": hwaddrs[entry]}
+            else:
+                return {"ext_port": entry}
+        return None
 
 
 class QuantumGatewayContext(OSContextGenerator):
