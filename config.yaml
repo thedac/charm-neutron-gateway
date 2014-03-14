@@ -50,3 +50,10 @@ options:
     type: string
     description: RabbitMQ Virtual Host
     default: openstack
+  instance-mtu:
+    type: int
+    description: |
+      Configure DHCP services to provide MTU configuration to instances
+      within the cloud.  This is useful in deployments where its not
+      possible to increase MTU on switches and physical servers to
+      accomodate the packet overhead of using GRE tunnels.
