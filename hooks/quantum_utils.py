@@ -144,6 +144,7 @@ QUANTUM_METADATA_AGENT_CONF = "/etc/quantum/metadata_agent.ini"
 NEUTRON_CONF = "/etc/neutron/neutron.conf"
 NEUTRON_L3_AGENT_CONF = "/etc/neutron/l3_agent.ini"
 NEUTRON_DHCP_AGENT_CONF = "/etc/neutron/dhcp_agent.ini"
+NEUTRON_DNSMASQ_CONF = "/etc/neutron/dnsmasq.conf"
 NEUTRON_METADATA_AGENT_CONF = "/etc/neutron/metadata_agent.ini"
 NEUTRON_METERING_AGENT_CONF = "/etc/neutron/metering_agent.ini"
 
@@ -174,6 +175,10 @@ QUANTUM_SHARED_CONFIG_FILES.update(NOVA_CONFIG_FILES)
 
 NEUTRON_SHARED_CONFIG_FILES = {
     NEUTRON_DHCP_AGENT_CONF: {
+        'hook_contexts': [QuantumGatewayContext()],
+        'services': ['neutron-dhcp-agent']
+    },
+    NEUTRON_DNSMASQ_CONF: {
         'hook_contexts': [QuantumGatewayContext()],
         'services': ['neutron-dhcp-agent']
     },
@@ -296,7 +301,6 @@ def register_configs():
     for conf in CONFIG_FILES[name][plugin]:
         configs.register(conf,
                          CONFIG_FILES[name][plugin][conf]['hook_contexts'])
-
     return configs
 
 
@@ -465,6 +469,6 @@ def configure_ovs():
             full_restart()
         add_bridge(INT_BRIDGE)
         add_bridge(EXT_BRIDGE)
-        ext_port = config('ext-port')
-        if ext_port:
-            add_bridge_port(EXT_BRIDGE, ext_port)
+        ext_port_ctx = ExternalPortContext()()
+        if ext_port_ctx is not None and ext_port_ctx['ext_port']:
+            add_bridge_port(EXT_BRIDGE, ext_port_ctx['ext_port'])

@@ -16,6 +16,8 @@ TO_PATCH = [
     'apt_install',
     'get_os_codename_install_source',
     'eligible_leader',
+    'list_nics',
+    'get_nic_hwaddr',
 ]
 
 
@@ -140,10 +142,31 @@ class TestExternalPortContext(CharmTestCase):
         self.assertEquals(quantum_contexts.ExternalPortContext()(),
                           None)
 
-    def test_ext_port(self):
+    def test_ext_port_eth(self):
         self.config.return_value = 'eth1010'
         self.assertEquals(quantum_contexts.ExternalPortContext()(),
                           {'ext_port': 'eth1010'})
+
+    def test_ext_port_mac(self):
+        machine_macs = {
+            'eth0': 'fe:c5:ce:8e:2b:00',
+            'eth1': 'fe:c5:ce:8e:2b:01',
+            'eth2': 'fe:c5:ce:8e:2b:02',
+            'eth3': 'fe:c5:ce:8e:2b:03',
+        }
+        absent_macs = "aa:a5:ae:ae:ab:a4 "
+        config_macs = absent_macs + " " + machine_macs['eth2']
+        def get_hwaddr(arg):
+            return machine_macs[arg]
+        self.config.return_value = config_macs
+        self.list_nics.return_value = machine_macs.keys()
+        self.get_nic_hwaddr.side_effect = get_hwaddr
+        self.assertEquals(quantum_contexts.ExternalPortContext()(),
+                          {'ext_port': 'eth2'})
+        self.config.return_value = absent_macs
+        self.assertEquals(quantum_contexts.ExternalPortContext()(),
+                         None)
+                           
 
 
 class TestL3AgentContext(CharmTestCase):
@@ -190,12 +213,14 @@ class TestQuantumGatewayContext(CharmTestCase):
         self.test_config.set('plugin', 'ovs')
         self.test_config.set('debug', False)
         self.test_config.set('verbose', True)
+        self.test_config.set('instance-mtu', 1420)
         self.get_os_codename_install_source.return_value = 'folsom'
         _host_ip.return_value = '10.5.0.1'
         _secret.return_value = 'testsecret'
         self.assertEquals(quantum_contexts.QuantumGatewayContext()(), {
             'shared_secret': 'testsecret',
             'local_ip': '10.5.0.1',
+            'instance_mtu': 1420,
             'core_plugin': "quantum.plugins.openvswitch.ovs_quantum_plugin."
                            "OVSQuantumPluginV2",
             'plugin': 'ovs',
