@@ -49,6 +49,30 @@ The gateway provides two key services; L3 network routing and DHCP services.
 
 These are both required in a fully functional Neutron Openstack deployment.
 
+See upstream [Neutron multi extnet](http://docs.openstack.org/trunk/config-reference/content/adv_cfg_l3_agent_multi_extnet.html)
+
+Configuration Options
+---------------------
+
+External Port Configuration
+===========================
+
+If the port to be used for external traffic is consistent accross all physical
+servers then is can be specified by simply setting ext-port to the nic id:
+
+    quantum-gateway:
+        ext-port: eth2
+
+However, if it varies between hosts then the mac addresses of the external
+nics for each host can be passed as a space seperated list:
+
+    quantum-gateway:
+        ext-port: <MAC ext port host 1> <MAC ext port host 2> <MAC ext port host 3>
+
+
+Multiple Floating Pools
+=======================
+
 If multiple floating pools are needed then an L3 agent (which corresponds to
 a quantum-gateway for the sake of this charm) is needed for each one. Each
 gateway needs to be deployed as a seperate service so that the external
@@ -70,7 +94,20 @@ network id can be set differently for each gateway e.g.
     juju set quantum-gateway-extnet1 "external-network-id=<extnet1 id>"
     juju set quantum-gateway-extnet2 "external-network-id=<extnet2 id>"
 
-See upstream [Neutron multi extnet](http://docs.openstack.org/trunk/config-reference/content/adv_cfg_l3_agent_multi_extnet.html)
+Instance MTU
+============
+
+When using Open vSwitch plugin with GRE tunnels default MTU of 1500 can cause
+packet fragmentation due to GRE overhead. One solution is to increase the MTU on
+physical hosts and network equipment. When this is not possible or practical thi
+charm's instance-mtu option can be used to reduce instance MTU via DHCP.
+
+    juju set quantum-gateway instance-mtu=1400
+
+OpenStack upstream documentation recomments a MTU value of 1400:
+[Openstack documentation](http://docs.openstack.org/admin-guide-cloud/content/openvswitch_plugin.html)
+
+Note that this option was added in Havana and will be ignored in older releases.
 
 TODO
 ----

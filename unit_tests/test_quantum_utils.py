@@ -34,6 +34,7 @@ TO_PATCH = [
     'full_restart',
     'service_running',
     'NetworkServiceContext',
+    'ExternalPortContext',
     'unit_private_ip',
     'relations_of_type',
     'service_stop',
@@ -100,6 +101,8 @@ class TestQuantumUtils(CharmTestCase):
         self.config.side_effect = self.test_config.get
         self.test_config.set('plugin', 'ovs')
         self.test_config.set('ext-port', 'eth0')
+        self.ExternalPortContext.return_value = \
+            DummyExternalPortContext(return_value={'ext_port': 'eth0'})
         quantum_utils.configure_ovs()
         self.add_bridge.assert_has_calls([
             call('br-int'),
@@ -158,6 +161,7 @@ class TestQuantumUtils(CharmTestCase):
             quantum_utils.NEUTRON_METADATA_AGENT_CONF:
             ['neutron-metadata-agent'],
             quantum_utils.NEUTRON_DHCP_AGENT_CONF: ['neutron-dhcp-agent'],
+            quantum_utils.NEUTRON_DNSMASQ_CONF: ['neutron-dhcp-agent'],
             quantum_utils.NEUTRON_CONF: ['neutron-l3-agent',
                                          'neutron-dhcp-agent',
                                          'neutron-metadata-agent',
@@ -209,6 +213,7 @@ class TestQuantumUtils(CharmTestCase):
         self.config.return_value = 'nvp'
         ex_map = {
             quantum_utils.NEUTRON_DHCP_AGENT_CONF: ['neutron-dhcp-agent'],
+            quantum_utils.NEUTRON_DNSMASQ_CONF: ['neutron-dhcp-agent'],
             quantum_utils.NOVA_CONF: ['nova-api-metadata'],
             quantum_utils.NEUTRON_CONF: ['neutron-dhcp-agent',
                                          'neutron-metadata-agent'],
@@ -256,6 +261,14 @@ network_context = {
 
 
 class DummyNetworkServiceContext():
+    def __init__(self, return_value):
+        self.return_value = return_value
+
+    def __call__(self):
+        return self.return_value
+
+
+class DummyExternalPortContext():
     def __init__(self, return_value):
         self.return_value = return_value
 
