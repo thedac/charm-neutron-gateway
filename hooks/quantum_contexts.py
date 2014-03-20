@@ -12,7 +12,7 @@ from charmhelpers.core.hookenv import (
     related_units,
     relation_get,
     unit_get,
-    cached,
+    cached
 )
 from charmhelpers.fetch import (
     apt_install,

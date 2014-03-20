@@ -113,6 +113,15 @@ def amqp_joined(relation_id=None):
                  vhost=config('rabbit-vhost'))
 
 
+@hooks.hook('amqp-relation-departed')
+@restart_on_change(restart_map())
+def amqp_departed():
+    if 'amqp' not in CONFIGS.complete_contexts():
+        log('amqp relation incomplete. Peer not ready?')
+        return
+    CONFIGS.write_all()
+
+
 @hooks.hook('shared-db-relation-changed',
             'amqp-relation-changed',
             'cluster-relation-changed',
