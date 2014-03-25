@@ -1,5 +1,10 @@
-from mock import MagicMock, patch
+from mock import (
+    Mock,
+    MagicMock,
+    patch
+)
 import quantum_contexts
+import sys
 from contextlib import contextmanager
 
 from test_utils import (
@@ -199,6 +204,7 @@ class TestQuantumGatewayContext(CharmTestCase):
     def setUp(self):
         super(TestQuantumGatewayContext, self).setUp(quantum_contexts,
                                                      TO_PATCH)
+        self.config.side_effect = self.test_config.get
 
     @patch.object(quantum_contexts, 'get_shared_secret')
     @patch.object(quantum_contexts, 'get_host_ip')
@@ -256,6 +262,19 @@ class TestHostIP(CharmTestCase):
         super(TestHostIP, self).setUp(quantum_contexts,
                                       TO_PATCH)
         self.config.side_effect = self.test_config.get
+        # Save and inject
+        self.mods = {'dns': None, 'dns.resolver': None}
+        for mod in self.mods:
+            if mod not in sys.modules:
+                sys.modules[mod] = Mock()
+            else:
+                del self.mods[mod]
+
+    def tearDown(self):
+        super(TestHostIP, self).tearDown()
+        # Cleanup
+        for mod in self.mods.keys():
+            del sys.modules[mod]
 
     def test_get_host_ip_already_ip(self):
         self.assertEquals(quantum_contexts.get_host_ip('10.5.0.1'),
@@ -268,8 +287,7 @@ class TestHostIP(CharmTestCase):
 
     @patch('dns.resolver.query')
     def test_get_host_ip_hostname_unresolvable(self, _query):
-        class NXDOMAIN(Exception):
-            pass
+        class NXDOMAIN(Exception): pass
         _query.side_effect = NXDOMAIN()
         self.assertRaises(NXDOMAIN, quantum_contexts.get_host_ip,
                           'missing.example.com')

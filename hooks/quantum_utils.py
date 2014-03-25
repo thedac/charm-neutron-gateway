@@ -25,6 +25,9 @@ from charmhelpers.contrib.openstack.utils import (
 )
 
 import charmhelpers.contrib.openstack.context as context
+from charmhelpers.contrib.openstack.context import (
+    SyslogContext
+)
 import charmhelpers.contrib.openstack.templating as templating
 from charmhelpers.contrib.openstack.neutron import headers_package
 from quantum_contexts import (
@@ -150,19 +153,22 @@ NOVA_CONFIG_FILES = {
         'hook_contexts': [context.AMQPContext(),
                           QuantumSharedDBContext(),
                           NetworkServiceContext(),
-                          QuantumGatewayContext()],
+                          QuantumGatewayContext(),
+                          SyslogContext()],
         'services': ['nova-api-metadata']
     },
 }
 
 QUANTUM_SHARED_CONFIG_FILES = {
     QUANTUM_DHCP_AGENT_CONF: {
-        'hook_contexts': [QuantumGatewayContext()],
+        'hook_contexts': [QuantumGatewayContext(),
+                          SyslogContext()],
         'services': ['quantum-dhcp-agent']
     },
     QUANTUM_METADATA_AGENT_CONF: {
         'hook_contexts': [NetworkServiceContext(),
-                          QuantumGatewayContext()],
+                          QuantumGatewayContext(),
+                          SyslogContext()],
         'services': ['quantum-metadata-agent']
     },
 }
@@ -170,7 +176,8 @@ QUANTUM_SHARED_CONFIG_FILES.update(NOVA_CONFIG_FILES)
 
 NEUTRON_SHARED_CONFIG_FILES = {
     NEUTRON_DHCP_AGENT_CONF: {
-        'hook_contexts': [QuantumGatewayContext()],
+        'hook_contexts': [QuantumGatewayContext(),
+                          SyslogContext()],
         'services': ['neutron-dhcp-agent']
     },
     NEUTRON_DNSMASQ_CONF: {
@@ -179,7 +186,8 @@ NEUTRON_SHARED_CONFIG_FILES = {
     },
     NEUTRON_METADATA_AGENT_CONF: {
         'hook_contexts': [NetworkServiceContext(),
-                          QuantumGatewayContext()],
+                          QuantumGatewayContext(),
+                          SyslogContext()],
         'services': ['neutron-metadata-agent']
     },
 }
@@ -188,20 +196,23 @@ NEUTRON_SHARED_CONFIG_FILES.update(NOVA_CONFIG_FILES)
 QUANTUM_OVS_CONFIG_FILES = {
     QUANTUM_CONF: {
         'hook_contexts': [context.AMQPContext(),
-                          QuantumGatewayContext()],
+                          QuantumGatewayContext(),
+                          SyslogContext()],
         'services': ['quantum-l3-agent',
                      'quantum-dhcp-agent',
                      'quantum-metadata-agent',
                      'quantum-plugin-openvswitch-agent']
     },
     QUANTUM_L3_AGENT_CONF: {
-        'hook_contexts': [NetworkServiceContext()],
+        'hook_contexts': [NetworkServiceContext(),
+                          SyslogContext()],
         'services': ['quantum-l3-agent']
     },
     # TODO: Check to see if this is actually required
     QUANTUM_OVS_PLUGIN_CONF: {
         'hook_contexts': [QuantumSharedDBContext(),
-                          QuantumGatewayContext()],
+                          QuantumGatewayContext(),
+                          SyslogContext()],
         'services': ['quantum-plugin-openvswitch-agent']
     },
     EXT_PORT_CONF: {
@@ -214,7 +225,8 @@ QUANTUM_OVS_CONFIG_FILES.update(QUANTUM_SHARED_CONFIG_FILES)
 NEUTRON_OVS_CONFIG_FILES = {
     NEUTRON_CONF: {
         'hook_contexts': [context.AMQPContext(),
-                          QuantumGatewayContext()],
+                          QuantumGatewayContext(),
+                          SyslogContext()],
         'services': ['neutron-l3-agent',
                      'neutron-dhcp-agent',
                      'neutron-metadata-agent',
@@ -222,13 +234,15 @@ NEUTRON_OVS_CONFIG_FILES = {
     },
     NEUTRON_L3_AGENT_CONF: {
         'hook_contexts': [NetworkServiceContext(),
-                          L3AgentContext()],
+                          L3AgentContext(),
+                          SyslogContext()],
         'services': ['neutron-l3-agent']
     },
     # TODO: Check to see if this is actually required
     NEUTRON_OVS_PLUGIN_CONF: {
         'hook_contexts': [QuantumSharedDBContext(),
-                          QuantumGatewayContext()],
+                          QuantumGatewayContext(),
+                          SyslogContext()],
         'services': ['neutron-plugin-openvswitch-agent']
     },
     EXT_PORT_CONF: {

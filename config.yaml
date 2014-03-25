@@ -50,6 +50,11 @@ options:
     type: string
     description: RabbitMQ Virtual Host
     default: openstack
+  use-syslog:
+    type: boolean
+    default: False
+    description: |
+      If set to True, supporting services will log to syslog.
   instance-mtu:
     type: int
     description: |
