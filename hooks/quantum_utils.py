@@ -25,6 +25,9 @@ from charmhelpers.contrib.openstack.utils import (
 )
 
 import charmhelpers.contrib.openstack.context as context
+from charmhelpers.contrib.openstack.context import (
+    SyslogContext
+)
 import charmhelpers.contrib.openstack.templating as templating
 from charmhelpers.contrib.openstack.neutron import headers_package
 from quantum_contexts import (
@@ -150,7 +153,8 @@ NOVA_CONFIG_FILES = {
         'hook_contexts': [context.AMQPContext(),
                           QuantumSharedDBContext(),
                           NetworkServiceContext(),
-                          QuantumGatewayContext()],
+                          QuantumGatewayContext(),
+                          SyslogContext()],
         'services': ['nova-api-metadata']
     },
 }
@@ -188,7 +192,8 @@ NEUTRON_SHARED_CONFIG_FILES.update(NOVA_CONFIG_FILES)
 QUANTUM_OVS_CONFIG_FILES = {
     QUANTUM_CONF: {
         'hook_contexts': [context.AMQPContext(),
-                          QuantumGatewayContext()],
+                          QuantumGatewayContext(),
+                          SyslogContext()],
         'services': ['quantum-l3-agent',
                      'quantum-dhcp-agent',
                      'quantum-metadata-agent',
@@ -214,7 +219,8 @@ QUANTUM_OVS_CONFIG_FILES.update(QUANTUM_SHARED_CONFIG_FILES)
 NEUTRON_OVS_CONFIG_FILES = {
     NEUTRON_CONF: {
         'hook_contexts': [context.AMQPContext(),
-                          QuantumGatewayContext()],
+                          QuantumGatewayContext(),
+                          SyslogContext()],
         'services': ['neutron-l3-agent',
                      'neutron-dhcp-agent',
                      'neutron-metadata-agent',
