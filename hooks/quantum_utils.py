@@ -241,7 +241,8 @@ NEUTRON_OVS_CONFIG_FILES = {
     },
     NEUTRON_METERING_AGENT_CONF: {
         'hook_contexts': [QuantumGatewayContext()],
-        'services': ['neutron-metering-agent']
+        'services': ['neutron-plugin-metering-agent',
+                     'neutron-metering-agent']
     },
     NEUTRON_LBAAS_AGENT_CONF: {
         'hook_contexts': [QuantumGatewayContext()],
@@ -249,7 +250,8 @@ NEUTRON_OVS_CONFIG_FILES = {
     },
     NEUTRON_VPNAAS_AGENT_CONF: {
         'hook_contexts': [QuantumGatewayContext()],
-        'services': ['neutron-plugin-vpaas-agent']
+        'services': ['neutron-plugin-vpn-agent',
+                     'neutron-vpn-agent']
     },
     NEUTRON_OVS_PLUGIN_CONF: {
         'hook_contexts': [QuantumGatewayContext()],
