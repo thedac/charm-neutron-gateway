@@ -40,13 +40,14 @@ from quantum_contexts import (
     QuantumGatewayContext,
     NetworkServiceContext,
     L3AgentContext,
-    QuantumSharedDBContext,
     ExternalPortContext,
 )
 
 
 def valid_plugin():
     return config('plugin') in CORE_PLUGIN[networking_name()]
+
+QUANTUM_CONF_DIR = '/etc/quantum'
 
 QUANTUM_OVS_PLUGIN_CONF = \
     "/etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini"
@@ -56,6 +57,8 @@ QUANTUM_PLUGIN_CONF = {
     OVS: QUANTUM_OVS_PLUGIN_CONF,
     NVP: QUANTUM_NVP_PLUGIN_CONF
 }
+
+NEUTRON_CONF_DIR = '/etc/neutron'
 
 NEUTRON_OVS_PLUGIN_CONF = \
     "/etc/neutron/plugins/openvswitch/ovs_neutron_plugin.ini"
@@ -148,12 +151,13 @@ NEUTRON_DNSMASQ_CONF = "/etc/neutron/dnsmasq.conf"
 NEUTRON_METADATA_AGENT_CONF = "/etc/neutron/metadata_agent.ini"
 NEUTRON_METERING_AGENT_CONF = "/etc/neutron/metering_agent.ini"
 
+NOVA_CONF_DIR = '/etc/nova'
 NOVA_CONF = "/etc/nova/nova.conf"
 
 NOVA_CONFIG_FILES = {
     NOVA_CONF: {
-        'hook_contexts': [context.AMQPContext(),
-                          QuantumSharedDBContext(),
+        'hook_contexts': [context.AMQPContext(ssl_dir=NOVA_CONF_DIR),
+                          context.SharedDBContext(ssl_dir=NOVA_CONF_DIR),
                           NetworkServiceContext(),
                           QuantumGatewayContext()],
         'services': ['nova-api-metadata']
@@ -192,7 +196,7 @@ NEUTRON_SHARED_CONFIG_FILES.update(NOVA_CONFIG_FILES)
 
 QUANTUM_OVS_CONFIG_FILES = {
     QUANTUM_CONF: {
-        'hook_contexts': [context.AMQPContext(),
+        'hook_contexts': [context.AMQPContext(ssl_dir=QUANTUM_CONF_DIR),
                           QuantumGatewayContext()],
         'services': ['quantum-l3-agent',
                      'quantum-dhcp-agent',
@@ -204,10 +208,8 @@ QUANTUM_OVS_CONFIG_FILES = {
                           QuantumGatewayContext()],
         'services': ['quantum-l3-agent']
     },
-    # TODO: Check to see if this is actually required
     QUANTUM_OVS_PLUGIN_CONF: {
-        'hook_contexts': [QuantumSharedDBContext(),
-                          QuantumGatewayContext()],
+        'hook_contexts': [QuantumGatewayContext()],
         'services': ['quantum-plugin-openvswitch-agent']
     },
     EXT_PORT_CONF: {
@@ -219,7 +221,7 @@ QUANTUM_OVS_CONFIG_FILES.update(QUANTUM_SHARED_CONFIG_FILES)
 
 NEUTRON_OVS_CONFIG_FILES = {
     NEUTRON_CONF: {
-        'hook_contexts': [context.AMQPContext(),
+        'hook_contexts': [context.AMQPContext(ssl_dir=NEUTRON_CONF_DIR),
                           QuantumGatewayContext()],
         'services': ['neutron-l3-agent',
                      'neutron-dhcp-agent',
@@ -237,10 +239,8 @@ NEUTRON_OVS_CONFIG_FILES = {
         'hook_contexts': [QuantumGatewayContext()],
         'services': ['neutron-metering-agent']
     },
-    # TODO: Check to see if this is actually required
     NEUTRON_OVS_PLUGIN_CONF: {
-        'hook_contexts': [QuantumSharedDBContext(),
-                          QuantumGatewayContext()],
+        'hook_contexts': [QuantumGatewayContext()],
         'services': ['neutron-plugin-openvswitch-agent']
     },
     NEUTRON_ML2_PLUGIN_CONF: {
@@ -256,7 +256,7 @@ NEUTRON_OVS_CONFIG_FILES.update(NEUTRON_SHARED_CONFIG_FILES)
 
 QUANTUM_NVP_CONFIG_FILES = {
     QUANTUM_CONF: {
-        'hook_contexts': [context.AMQPContext()],
+        'hook_contexts': [context.AMQPContext(ssl_dir=QUANTUM_CONF_DIR)],
         'services': ['quantum-dhcp-agent', 'quantum-metadata-agent']
     },
 }
@@ -264,7 +264,7 @@ QUANTUM_NVP_CONFIG_FILES.update(QUANTUM_SHARED_CONFIG_FILES)
 
 NEUTRON_NVP_CONFIG_FILES = {
     NEUTRON_CONF: {
-        'hook_contexts': [context.AMQPContext()],
+        'hook_contexts': [context.AMQPContext(ssl_dir=NEUTRON_CONF_DIR)],
         'services': ['neutron-dhcp-agent', 'neutron-metadata-agent']
     },
 }
@@ -354,8 +354,7 @@ def reassign_agent_resources():
         ''' Try to import neutronclient instead for havana+ '''
         from neutronclient.v2_0 import client
 
-    # TODO: Fixup for https keystone
-    auth_url = 'http://%(keystone_host)s:%(auth_port)s/v2.0' % env
+    auth_url = '%(auth_protocol)s://%(keystone_host)s:%(auth_port)s/v2.0' % env
     quantum = client.Client(username=env['service_username'],
                             password=env['service_password'],
                             tenant_name=env['service_tenant'],

@@ -1,4 +1,6 @@
 from mock import MagicMock, patch, call
+import charmhelpers.core.hookenv as hookenv
+hookenv.config = MagicMock()
 import quantum_utils as utils
 _register_configs = utils.register_configs
 _restart_map = utils.restart_map
@@ -53,6 +55,7 @@ class TestQuantumHooks(CharmTestCase):
         self.test_config.set('plugin', 'ovs')
         self.lsb_release.return_value = {'DISTRIB_CODENAME': 'precise'}
         self.b64decode.side_effect = passthrough
+        hookenv.config.side_effect = self.test_config.get
 
     def _call_hook(self, hookname):
         hooks.hooks.execute([
@@ -107,23 +110,18 @@ class TestQuantumHooks(CharmTestCase):
     def test_upgrade_charm(self):
         _install = self.patch('install')
         _config_changed = self.patch('config_changed')
-        _amqp_joined = self.patch('amqp_joined')
-        self.relation_ids.return_value = ['amqp:0']
         self._call_hook('upgrade-charm')
         self.assertTrue(_install.called)
         self.assertTrue(_config_changed.called)
-        _amqp_joined.assert_called_with(relation_id='amqp:0')
 
     def test_db_joined(self):
         self.unit_get.return_value = 'myhostname'
         self._call_hook('shared-db-relation-joined')
         self.relation_set.assert_called_with(
-            quantum_username='quantum',
-            quantum_database='quantum',
-            quantum_hostname='myhostname',
-            nova_username='nova',
-            nova_database='nova',
-            nova_hostname='myhostname',
+            username='nova',
+            database='nova',
+            hostname='myhostname',
+            relation_id=None
         )
 
     def test_amqp_joined(self):
