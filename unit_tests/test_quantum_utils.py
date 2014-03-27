@@ -158,6 +158,8 @@ class TestQuantumUtils(CharmTestCase):
             quantum_utils.NEUTRON_L3_AGENT_CONF: ['neutron-l3-agent'],
             quantum_utils.NEUTRON_METERING_AGENT_CONF:
             ['neutron-metering-agent'],
+            quantum_utils.NEUTRON_LBAAS_AGENT_CONF:
+            ['neutron-lbaas-agent'],
             quantum_utils.NEUTRON_OVS_PLUGIN_CONF:
             ['neutron-plugin-openvswitch-agent'],
             quantum_utils.NOVA_CONF: ['nova-api-metadata'],
@@ -169,7 +171,8 @@ class TestQuantumUtils(CharmTestCase):
                                          'neutron-dhcp-agent',
                                          'neutron-metadata-agent',
                                          'neutron-plugin-openvswitch-agent',
-                                         'neutron-metering-agent']
+                                         'neutron-metering-agent',
+                                         'neutron-lbaas-agent']
         }
         self.assertEquals(quantum_utils.restart_map(), ex_map)
 
