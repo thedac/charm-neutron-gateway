@@ -154,6 +154,8 @@ NEUTRON_METADATA_AGENT_CONF = "/etc/neutron/metadata_agent.ini"
 NEUTRON_METERING_AGENT_CONF = "/etc/neutron/metering_agent.ini"
 NEUTRON_LBAAS_AGENT_CONF = "/etc/neutron/lbaas_agent.ini"
 NEUTRON_VPNAAS_AGENT_CONF = "/etc/neutron/vpn_agent.ini"
+NEUTRON_FWAAS_CONF = "/etc/neutron/fwaas_driver.ini"
+
 NOVA_CONF_DIR = '/etc/nova'
 NOVA_CONF = "/etc/nova/nova.conf"
 
@@ -252,6 +254,10 @@ NEUTRON_OVS_CONFIG_FILES = {
         'hook_contexts': [QuantumGatewayContext()],
         'services': ['neutron-plugin-vpn-agent',
                      'neutron-vpn-agent']
+    },
+    NEUTRON_FWAAS_CONF: {
+        'hook_contexts': [QuantumGatewayContext()],
+        'services': ['neutron-l3-agent']
     },
     NEUTRON_OVS_PLUGIN_CONF: {
         'hook_contexts': [QuantumGatewayContext()],
