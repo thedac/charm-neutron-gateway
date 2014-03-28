@@ -155,6 +155,35 @@ class SharedDBContext(OSContextGenerator):
         return {}
 
 
+class PostgresqlDBContext(OSContextGenerator):
+    interfaces = ['pgsql-db']
+
+    def __init__(self, database=None):
+        self.database = database
+
+    def __call__(self):
+        self.database = self.database or config('database')
+        if self.database is None:
+            log('Could not generate postgresql_db context. '
+                'Missing required charm config options. '
+                '(database name)')
+            raise OSContextError
+        ctxt = {}
+
+        for rid in relation_ids(self.interfaces[0]):
+            for unit in related_units(rid):
+                ctxt = {
+                    'database_host': relation_get('host', rid=rid, unit=unit),
+                    'database': self.database,
+                    'database_user': relation_get('user', rid=rid, unit=unit),
+                    'database_password': relation_get('password', rid=rid, unit=unit),
+                    'database_type': 'postgresql',
+                }
+                if context_complete(ctxt):
+                    return ctxt
+        return {}
+
+
 def db_ssl(rdata, ctxt, ssl_dir):
     if 'ssl_ca' in rdata and ssl_dir:
         ca_path = os.path.join(ssl_dir, 'db-client.ca')

@@ -5,6 +5,7 @@ from base64 import b64decode
 from charmhelpers.core.hookenv import (
     log, ERROR, WARNING,
     config,
+    is_relation_made,
     relation_get,
     relation_set,
     relation_ids,
@@ -77,6 +78,8 @@ def config_changed():
     # Re-run joined hooks as config might have changed
     for r_id in relation_ids('shared-db'):
         db_joined(relation_id=r_id)
+    for r_id in relation_ids('pgsql-db'):
+        pgsql_db_joined(relation_id=r_id)
     for r_id in relation_ids('amqp'):
         amqp_joined(relation_id=r_id)
     if valid_plugin():
@@ -95,10 +98,27 @@ def upgrade_charm():
 
 @hooks.hook('shared-db-relation-joined')
 def db_joined(relation_id=None):
+    if is_relation_made('pgsql-db'):
+        # raise error
+        e = ('Attempting to associate a mysql database when there is already '
+             'associated a postgresql one')
+        log(e, level=ERROR)
+        raise Exception(e)
     relation_set(username=config('database-user'),
                  database=config('database'),
                  hostname=unit_get('private-address'),
                  relation_id=relation_id)
+
+
+@hooks.hook('pgsql-db-relation-joined')
+def pgsql_db_joined():
+    if is_relation_made('shared-db'):
+        # raise error
+        e = ('Attempting to associate a postgresql database when there is already '
+             'associated a mysql one')
+        log(e, level=ERROR)
+        raise Exception(e)
+    relation_set(database=config('database'))
 
 
 @hooks.hook('amqp-relation-joined')
@@ -118,6 +138,7 @@ def amqp_departed():
 
 
 @hooks.hook('shared-db-relation-changed',
+            'pgsql-db-relation-changed',
             'amqp-relation-changed',
             'cluster-relation-changed',
             'cluster-relation-joined')

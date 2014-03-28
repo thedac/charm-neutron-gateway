@@ -39,6 +39,7 @@ TO_PATCH = [
     'lsb_release',
     'stop_services',
     'b64decode',
+    'is_relation_made'
 ]
 
 
@@ -115,6 +116,7 @@ class TestQuantumHooks(CharmTestCase):
         self.assertTrue(_config_changed.called)
 
     def test_db_joined(self):
+        self.is_relation_made.return_value = False
         self.unit_get.return_value = 'myhostname'
         self._call_hook('shared-db-relation-joined')
         self.relation_set.assert_called_with(
@@ -123,6 +125,32 @@ class TestQuantumHooks(CharmTestCase):
             hostname='myhostname',
             relation_id=None
         )
+
+    def test_db_joined_with_postgresql(self):
+        self.is_relation_made.return_value = True
+
+        with self.assertRaises(Exception) as context:
+            hooks.db_joined()
+        self.assertEqual(context.exception.message,
+            'Attempting to associate a mysql database when there '
+            'is already associated a postgresql one')
+
+    def test_postgresql_db_joined(self):
+        self.unit_get.return_value = 'myhostname'
+        self.is_relation_made.return_value = False
+        self._call_hook('pgsql-db-relation-joined')
+        self.relation_set.assert_called_with(
+            database='nova'
+        )
+
+    def test_postgresql_joined_with_db(self):
+        self.is_relation_made.return_value = True
+
+        with self.assertRaises(Exception) as context:
+            hooks.pgsql_db_joined()
+        self.assertEqual(context.exception.message,
+            'Attempting to associate a postgresql database when there '
+            'is already associated a mysql one')
 
     def test_amqp_joined(self):
         self._call_hook('amqp-relation-joined')
@@ -138,6 +166,10 @@ class TestQuantumHooks(CharmTestCase):
 
     def test_shared_db_changed(self):
         self._call_hook('shared-db-relation-changed')
+        self.CONFIGS.write_all.assert_called()
+
+    def test_pgsql_db_changed(self):
+        self._call_hook('pgsql-db-relation-changed')
         self.CONFIGS.write_all.assert_called()
 
     def test_nm_changed(self):

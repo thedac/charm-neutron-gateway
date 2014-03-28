@@ -1,4 +1,5 @@
 from mock import MagicMock, call, patch
+import collections
 
 import charmhelpers.contrib.openstack.templating as templating
 
@@ -45,6 +46,16 @@ TO_PATCH = [
 
 
 class TestQuantumUtils(CharmTestCase):
+
+    def assertDictEqual(self, d1, d2, msg=None): # assertEqual uses for dicts
+        for k,v1 in d1.iteritems():
+            self.assertIn(k, d2, msg)
+            v2 = d2[k]
+            if(isinstance(v1, collections.Iterable) and
+               not isinstance(v1, basestring)):
+                self.assertItemsEqual(v1, v2, msg)
+            else:
+                self.assertEqual(v1, v2, msg)
 
     def setUp(self):
         super(TestQuantumUtils, self).setUp(quantum_utils, TO_PATCH)
@@ -144,7 +155,6 @@ class TestQuantumUtils(CharmTestCase):
                  quantum_utils.NEUTRON_L3_AGENT_CONF,
                  quantum_utils.NEUTRON_OVS_PLUGIN_CONF,
                  quantum_utils.EXT_PORT_CONF]
-        print configs.register.calls()
         for conf in confs:
             configs.register.assert_any_call(
                 conf,
@@ -155,26 +165,30 @@ class TestQuantumUtils(CharmTestCase):
     def test_restart_map_ovs(self):
         self.config.return_value = 'ovs'
         ex_map = {
-            quantum_utils.NEUTRON_L3_AGENT_CONF: ['neutron-l3-agent'],
-            quantum_utils.NEUTRON_METERING_AGENT_CONF:
-            ['neutron-metering-agent'],
-            quantum_utils.NEUTRON_LBAAS_AGENT_CONF:
-            ['neutron-lbaas-agent'],
-            quantum_utils.NEUTRON_OVS_PLUGIN_CONF:
-            ['neutron-plugin-openvswitch-agent'],
-            quantum_utils.NOVA_CONF: ['nova-api-metadata'],
-            quantum_utils.NEUTRON_METADATA_AGENT_CONF:
-            ['neutron-metadata-agent'],
-            quantum_utils.NEUTRON_DHCP_AGENT_CONF: ['neutron-dhcp-agent'],
-            quantum_utils.NEUTRON_DNSMASQ_CONF: ['neutron-dhcp-agent'],
             quantum_utils.NEUTRON_CONF: ['neutron-l3-agent',
                                          'neutron-dhcp-agent',
                                          'neutron-metadata-agent',
                                          'neutron-plugin-openvswitch-agent',
                                          'neutron-metering-agent',
-                                         'neutron-lbaas-agent']
+                                         'neutron-lbaas-agent'],
+            quantum_utils.NEUTRON_DNSMASQ_CONF: ['neutron-dhcp-agent'],
+            quantum_utils.NEUTRON_LBAAS_AGENT_CONF:
+            ['neutron-lbaas-agent'],
+            quantum_utils.NEUTRON_OVS_PLUGIN_CONF:
+            ['neutron-plugin-openvswitch-agent'],
+            quantum_utils.NEUTRON_METADATA_AGENT_CONF:
+            ['neutron-metadata-agent'],
+            quantum_utils.NEUTRON_VPNAAS_AGENT_CONF: ['neutron-plugin-vpn-agent',
+                                                      'neutron-vpn-agent'],
+            quantum_utils.NEUTRON_L3_AGENT_CONF: ['neutron-l3-agent'],
+            quantum_utils.NEUTRON_DHCP_AGENT_CONF: ['neutron-dhcp-agent'],
+            quantum_utils.NEUTRON_FWAAS_CONF: ['neutron-l3-agent'],
+            quantum_utils.NEUTRON_METERING_AGENT_CONF:
+            ['neutron-metering-agent', 'neutron-plugin-metering-agent'],
+            quantum_utils.NOVA_CONF: ['nova-api-metadata'],
         }
-        self.assertEquals(quantum_utils.restart_map(), ex_map)
+
+        self.assertDictEqual(quantum_utils.restart_map(), ex_map)
 
     def test_register_configs_nvp(self):
         self.config.return_value = 'nvp'
