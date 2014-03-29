@@ -232,8 +232,11 @@ NEUTRON_OVS_CONFIG_FILES = {
                      'neutron-dhcp-agent',
                      'neutron-metadata-agent',
                      'neutron-plugin-openvswitch-agent',
+                     'neutron-plugin-metering-agent',
                      'neutron-metering-agent',
-                     'neutron-lbaas-agent']
+                     'neutron-lbaas-agent',
+                     'neutron-plugin-vpn-agent',
+                     'neutron-vpn-agent']
     },
     NEUTRON_L3_AGENT_CONF: {
         'hook_contexts': [NetworkServiceContext(),
