@@ -111,14 +111,15 @@ def db_joined(relation_id=None):
 
 
 @hooks.hook('pgsql-db-relation-joined')
-def pgsql_db_joined():
+def pgsql_db_joined(relation_id=None):
     if is_relation_made('shared-db'):
         # raise error
         e = ('Attempting to associate a postgresql database when there is already '
              'associated a mysql one')
         log(e, level=ERROR)
         raise Exception(e)
-    relation_set(database=config('database'))
+    relation_set(database=config('database'),
+                 relation_id=relation_id)
 
 
 @hooks.hook('amqp-relation-joined')
