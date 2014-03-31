@@ -77,12 +77,14 @@ QUANTUM_GATEWAY_PKGS = {
         "quantum-l3-agent",
         "quantum-dhcp-agent",
         'python-mysqldb',
+        'python-psycopg2',
         "nova-api-metadata"
     ],
     NVP: [
         "openvswitch-switch",
         "quantum-dhcp-agent",
         'python-mysqldb',
+        'python-psycopg2',
         "nova-api-metadata"
     ]
 }
@@ -94,6 +96,7 @@ NEUTRON_GATEWAY_PKGS = {
         "neutron-l3-agent",
         "neutron-dhcp-agent",
         'python-mysqldb',
+        'python-psycopg2',
         'python-oslo.config',  # Force upgrade
         "nova-api-metadata",
         "neutron-plugin-metering-agent",
@@ -103,6 +106,7 @@ NEUTRON_GATEWAY_PKGS = {
     NVP: [
         "neutron-dhcp-agent",
         'python-mysqldb',
+        'python-psycopg2',
         'python-oslo.config',  # Force upgrade
         "nova-api-metadata"
     ]
@@ -163,6 +167,7 @@ NOVA_CONFIG_FILES = {
     NOVA_CONF: {
         'hook_contexts': [context.AMQPContext(ssl_dir=NOVA_CONF_DIR),
                           context.SharedDBContext(ssl_dir=NOVA_CONF_DIR),
+                          context.PostgresqlDBContext(),
                           NetworkServiceContext(),
                           QuantumGatewayContext()],
         'services': ['nova-api-metadata']
