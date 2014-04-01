@@ -73,6 +73,7 @@ def install():
 @hooks.hook('config-changed')
 @restart_on_change(restart_map())
 def config_changed():
+    global CONFIGS
     if openstack_upgrade_available(get_common_package()):
         CONFIGS = do_openstack_upgrade()
     # Re-run joined hooks as config might have changed
