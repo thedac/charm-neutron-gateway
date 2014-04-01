@@ -101,7 +101,8 @@ NEUTRON_GATEWAY_PKGS = {
         "nova-api-metadata",
         "neutron-plugin-metering-agent",
         "neutron-lbaas-agent",
-        "neutron-plugin-vpn-agent"
+        "neutron-plugin-vpn-agent",
+        "openswan"
     ],
     NVP: [
         "neutron-dhcp-agent",
