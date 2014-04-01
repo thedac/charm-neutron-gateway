@@ -74,7 +74,7 @@ def install():
 @restart_on_change(restart_map())
 def config_changed():
     if openstack_upgrade_available(get_common_package()):
-        do_openstack_upgrade(CONFIGS)
+        CONFIGS = do_openstack_upgrade()
     # Re-run joined hooks as config might have changed
     for r_id in relation_ids('shared-db'):
         db_joined(relation_id=r_id)

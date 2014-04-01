@@ -458,17 +458,14 @@ def services():
     return list(set(_services))
 
 
-def do_openstack_upgrade(configs):
+def do_openstack_upgrade():
     """
     Perform an upgrade.  Takes care of upgrading packages, rewriting
     configs, database migrations and potentially any other post-upgrade
     actions.
-
-    :param configs: The charms main OSConfigRenderer object.
     """
     new_src = config('openstack-origin')
     new_os_rel = get_os_codename_install_source(new_src)
-
     log('Performing OpenStack upgrade to %s.' % (new_os_rel))
 
     configure_installation_source(new_src)
@@ -483,11 +480,10 @@ def do_openstack_upgrade(configs):
     apt_install(get_packages(), fatal=True)
 
     # set CONFIGS to load templates from new release
-    configs.set_release(openstack_release=new_os_rel)
+    configs = register_configs()
     configs.write_all()
-    # NOTE(jamespage) still need to deal with quantum->neutron
-    # and ML2 in icehouse
     [service_restart(s) for s in services()]
+    return configs
 
 
 def configure_ovs():

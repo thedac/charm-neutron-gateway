@@ -127,12 +127,9 @@ class TestQuantumUtils(CharmTestCase):
         self.config.side_effect = self.test_config.get
         self.test_config.set('openstack-origin', 'cloud:precise-havana')
         self.test_config.set('plugin', 'ovs')
-        self.config.return_value = 'cloud:precise-havana'
         self.get_os_codename_install_source.return_value = 'havana'
-        configs = MagicMock()
-        quantum_utils.do_openstack_upgrade(configs)
-        configs.set_release.assert_called_with(openstack_release='havana')
-        self.log.assert_called()
+        quantum_utils.do_openstack_upgrade()
+        self.assertTrue(self.log.called)
         self.apt_update.assert_called_with(fatal=True)
         dpkg_opts = [
             '--option', 'Dpkg::Options::=--force-confnew',
@@ -442,7 +439,7 @@ class TestQuantumAgentReallocation(CharmTestCase):
         self.NetworkServiceContext.return_value = \
             DummyNetworkServiceContext(return_value=None)
         quantum_utils.reassign_agent_resources()
-        self.log.assert_called()
+        self.assertTrue(self.log.called)
 
     @patch('neutronclient.v2_0.client.Client')
     def test_no_down_agents(self, _client):
@@ -514,6 +511,6 @@ class TestQuantumAgentReallocation(CharmTestCase):
         self.unit_private_ip.return_value = 'cluster1-machine1.internal'
         self.relations_of_type.return_value = []
         quantum_utils.reassign_agent_resources()
-        self.log.assert_called()
+        self.assertTrue(self.log.called)
         assert not dummy_client.remove_router_from_l3_agent.called
         assert not dummy_client.remove_network_from_dhcp_agent.called
