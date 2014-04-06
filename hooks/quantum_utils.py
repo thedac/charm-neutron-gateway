@@ -100,9 +100,7 @@ NEUTRON_GATEWAY_PKGS = {
         'python-oslo.config',  # Force upgrade
         "nova-api-metadata",
         "neutron-plugin-metering-agent",
-        "neutron-lbaas-agent",
-        "neutron-plugin-vpn-agent",
-        "openswan"
+        "neutron-lbaas-agent"
     ],
     NVP: [
         "neutron-dhcp-agent",
@@ -240,9 +238,7 @@ NEUTRON_OVS_CONFIG_FILES = {
                      'neutron-plugin-openvswitch-agent',
                      'neutron-plugin-metering-agent',
                      'neutron-metering-agent',
-                     'neutron-lbaas-agent',
-                     'neutron-plugin-vpn-agent',
-                     'neutron-vpn-agent']
+                     'neutron-lbaas-agent']
     },
     NEUTRON_L3_AGENT_CONF: {
         'hook_contexts': [NetworkServiceContext(),
@@ -258,11 +254,6 @@ NEUTRON_OVS_CONFIG_FILES = {
     NEUTRON_LBAAS_AGENT_CONF: {
         'hook_contexts': [QuantumGatewayContext()],
         'services': ['neutron-lbaas-agent']
-    },
-    NEUTRON_VPNAAS_AGENT_CONF: {
-        'hook_contexts': [QuantumGatewayContext()],
-        'services': ['neutron-plugin-vpn-agent',
-                     'neutron-vpn-agent']
     },
     NEUTRON_FWAAS_CONF: {
         'hook_contexts': [QuantumGatewayContext()],
