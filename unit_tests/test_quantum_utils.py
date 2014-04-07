@@ -168,7 +168,9 @@ class TestQuantumUtils(CharmTestCase):
                                          'neutron-plugin-openvswitch-agent',
                                          'neutron-plugin-metering-agent',
                                          'neutron-metering-agent',
-                                         'neutron-lbaas-agent'],
+                                         'neutron-lbaas-agent',
+                                         'neutron-plugin-vpn-agent',
+                                         'neutron-vpn-agent'],
             quantum_utils.NEUTRON_DNSMASQ_CONF: ['neutron-dhcp-agent'],
             quantum_utils.NEUTRON_LBAAS_AGENT_CONF:
             ['neutron-lbaas-agent'],
@@ -176,6 +178,8 @@ class TestQuantumUtils(CharmTestCase):
             ['neutron-plugin-openvswitch-agent'],
             quantum_utils.NEUTRON_METADATA_AGENT_CONF:
             ['neutron-metadata-agent'],
+            quantum_utils.NEUTRON_VPNAAS_AGENT_CONF: ['neutron-plugin-vpn-agent',
+                                                      'neutron-vpn-agent'],
             quantum_utils.NEUTRON_L3_AGENT_CONF: ['neutron-l3-agent'],
             quantum_utils.NEUTRON_DHCP_AGENT_CONF: ['neutron-dhcp-agent'],
             quantum_utils.NEUTRON_FWAAS_CONF: ['neutron-l3-agent'],
