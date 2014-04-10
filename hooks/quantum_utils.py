@@ -43,6 +43,8 @@ from quantum_contexts import (
     ExternalPortContext,
 )
 
+from copy import deepcopy
+
 
 def valid_plugin():
     return config('plugin') in CORE_PLUGIN[networking_name()]
@@ -101,7 +103,6 @@ NEUTRON_GATEWAY_PKGS = {
         "nova-api-metadata",
         "neutron-plugin-metering-agent",
         "neutron-lbaas-agent",
-        "neutron-plugin-vpn-agent",
         "openswan"
     ],
     NVP: [
@@ -134,7 +135,13 @@ def get_early_packages():
 
 def get_packages():
     '''Return a list of packages for install based on the configured plugin'''
-    return GATEWAY_PKGS[networking_name()][config('plugin')]
+    packages = deepcopy(GATEWAY_PKGS[networking_name()][config('plugin')])
+    if (get_os_codename_install_source(config('openstack-origin'))
+            >= 'icehouse' and config('plugin') == 'ovs'):
+        # NOTE(jamespage) neutron-vpn-agent supercedes l3-agent for icehouse
+        packages.remove('neutron-l3-agent')
+        packages.append('neutron-vpn-agent')
+    return packages
 
 
 def get_common_package():

@@ -131,8 +131,8 @@ class TestQuantumHooks(CharmTestCase):
         with self.assertRaises(Exception) as context:
             hooks.db_joined()
         self.assertEqual(context.exception.message,
-            'Attempting to associate a mysql database when there '
-            'is already associated a postgresql one')
+                         'Attempting to associate a mysql database when there '
+                         'is already associated a postgresql one')
 
     def test_postgresql_db_joined(self):
         self.unit_get.return_value = 'myhostname'
@@ -149,8 +149,8 @@ class TestQuantumHooks(CharmTestCase):
         with self.assertRaises(Exception) as context:
             hooks.pgsql_db_joined()
         self.assertEqual(context.exception.message,
-            'Attempting to associate a postgresql database when there '
-            'is already associated a mysql one')
+                         'Attempting to associate a postgresql database when'
+                         ' there is already associated a mysql one')
 
     def test_amqp_joined(self):
         self._call_hook('amqp-relation-joined')

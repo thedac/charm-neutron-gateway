@@ -47,8 +47,8 @@ TO_PATCH = [
 
 class TestQuantumUtils(CharmTestCase):
 
-    def assertDictEqual(self, d1, d2, msg=None): # assertEqual uses for dicts
-        for k,v1 in d1.iteritems():
+    def assertDictEqual(self, d1, d2, msg=None):  # assertEqual uses for dicts
+        for k, v1 in d1.iteritems():
             self.assertIn(k, d2, msg)
             v2 = d2[k]
             if(isinstance(v1, collections.Iterable) and
@@ -97,7 +97,14 @@ class TestQuantumUtils(CharmTestCase):
 
     def test_get_packages_ovs(self):
         self.config.return_value = 'ovs'
+        self.get_os_codename_install_source.return_value = 'havana'
         self.assertNotEqual(quantum_utils.get_packages(), [])
+
+    def test_get_packages_ovs_icehouse(self):
+        self.config.return_value = 'ovs'
+        self.get_os_codename_install_source.return_value = 'icehouse'
+        self.assertTrue('neutron-vpn-agent' in quantum_utils.get_packages())
+        self.assertFalse('neutron-l3-agent' in quantum_utils.get_packages())
 
     def test_configure_ovs_starts_service_if_required(self):
         self.config.return_value = 'ovs'
@@ -178,8 +185,9 @@ class TestQuantumUtils(CharmTestCase):
             ['neutron-plugin-openvswitch-agent'],
             quantum_utils.NEUTRON_METADATA_AGENT_CONF:
             ['neutron-metadata-agent'],
-            quantum_utils.NEUTRON_VPNAAS_AGENT_CONF: ['neutron-plugin-vpn-agent',
-                                                      'neutron-vpn-agent'],
+            quantum_utils.NEUTRON_VPNAAS_AGENT_CONF: [
+                'neutron-plugin-vpn-agent',
+                'neutron-vpn-agent'],
             quantum_utils.NEUTRON_L3_AGENT_CONF: ['neutron-l3-agent'],
             quantum_utils.NEUTRON_DHCP_AGENT_CONF: ['neutron-dhcp-agent'],
             quantum_utils.NEUTRON_FWAAS_CONF: ['neutron-l3-agent'],
