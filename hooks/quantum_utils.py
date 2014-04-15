@@ -31,7 +31,7 @@ from charmhelpers.contrib.openstack.context import (
 import charmhelpers.contrib.openstack.templating as templating
 from charmhelpers.contrib.openstack.neutron import headers_package
 from quantum_contexts import (
-    CORE_PLUGIN, OVS, NVP,
+    CORE_PLUGIN, OVS, NVP, N1KV,
     NEUTRON, QUANTUM,
     networking_name,
     QuantumGatewayContext,
@@ -49,18 +49,24 @@ QUANTUM_OVS_PLUGIN_CONF = \
     "/etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini"
 QUANTUM_NVP_PLUGIN_CONF = \
     "/etc/quantum/plugins/nicira/nvp.ini"
+QUANTUM_N1KV_PLUGIN_CONF = \
+    "/etc/quantum/plugins/cisco/cisco_plugins.ini"
 QUANTUM_PLUGIN_CONF = {
     OVS: QUANTUM_OVS_PLUGIN_CONF,
-    NVP: QUANTUM_NVP_PLUGIN_CONF
+    NVP: QUANTUM_NVP_PLUGIN_CONF,
+    N1KV: QUANTUM_N1KV_PLUGIN_CONF
 }
 
 NEUTRON_OVS_PLUGIN_CONF = \
     "/etc/neutron/plugins/openvswitch/ovs_neutron_plugin.ini"
 NEUTRON_NVP_PLUGIN_CONF = \
     "/etc/neutron/plugins/nicira/nvp.ini"
+NEUTRON_N1KV_PLUGIN_CONF = \
+    "/etc/neutron/plugins/cisco/cisco_plugins.ini"
 NEUTRON_PLUGIN_CONF = {
     OVS: NEUTRON_OVS_PLUGIN_CONF,
-    NVP: NEUTRON_NVP_PLUGIN_CONF
+    NVP: NEUTRON_NVP_PLUGIN_CONF,
+    N1KV: NEUTRON_N1KV_PLUGIN_CONF
 }
 
 QUANTUM_GATEWAY_PKGS = {
@@ -76,6 +82,15 @@ QUANTUM_GATEWAY_PKGS = {
         "quantum-dhcp-agent",
         'python-mysqldb',
         "nova-api-metadata"
+    ],
+    N1KV: [
+        "neutron-plugin-cisco",
+        "openvswitch-switch",
+        "neutron-dhcp-agent",
+        "python-mysqldb",
+        "nova-api-metadata",
+        "neutron-common",
+        "quantum-l3-agent"
     ]
 }
 
@@ -94,6 +109,14 @@ NEUTRON_GATEWAY_PKGS = {
         'python-mysqldb',
         'python-oslo.config',  # Force upgrade
         "nova-api-metadata"
+    ],
+    N1KV: [
+        "neutron-plugin-cisco",
+        "neutron-dhcp-agent",
+        "python-mysqldb",
+        "nova-api-metadata",
+        "neutron-common",
+        "neutron-l3-agent"
     ]
 }
 
@@ -104,7 +127,8 @@ GATEWAY_PKGS = {
 
 EARLY_PACKAGES = {
     OVS: ['openvswitch-datapath-dkms'],
-    NVP: []
+    NVP: [],
+    N1KV: []
 }
 
 
@@ -260,14 +284,38 @@ NEUTRON_NVP_CONFIG_FILES = {
 }
 NEUTRON_NVP_CONFIG_FILES.update(NEUTRON_SHARED_CONFIG_FILES)
 
+QUANTUM_N1KV_CONFIG_FILES = {
+    QUANTUM_CONF: {
+        'hook_contexts': [context.AMQPContext()],
+        'services': ['quantum-dhcp-agent', 'quantum-metadata-agent']
+    },
+}
+QUANTUM_N1KV_CONFIG_FILES.update(QUANTUM_SHARED_CONFIG_FILES)
+
+NEUTRON_N1KV_CONFIG_FILES = {
+    NEUTRON_CONF: {
+        'hook_contexts': [context.AMQPContext()],
+        'services': ['neutron-dhcp-agent',
+                     'neutron-metadata-agent']
+    },
+    NEUTRON_L3_AGENT_CONF: {
+        'hook_contexts': [NetworkServiceContext(),
+                          L3AgentContext()],
+        'services': ['neutron-l3-agent']
+    },
+}
+NEUTRON_N1KV_CONFIG_FILES.update(NEUTRON_SHARED_CONFIG_FILES)
+
 CONFIG_FILES = {
     QUANTUM: {
         NVP: QUANTUM_NVP_CONFIG_FILES,
         OVS: QUANTUM_OVS_CONFIG_FILES,
+        N1KV: QUANTUM_N1KV_CONFIG_FILES,
     },
     NEUTRON: {
         NVP: NEUTRON_NVP_CONFIG_FILES,
         OVS: NEUTRON_OVS_CONFIG_FILES,
+        N1KV: NEUTRON_N1KV_CONFIG_FILES,
     },
 }
 
