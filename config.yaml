@@ -50,6 +50,14 @@ options:
     type: string
     description: RabbitMQ Virtual Host
     default: openstack
+  debug:
+    default: False
+    type: boolean
+    description: Enable debug logging
+  verbose:
+    default: False
+    type: boolean
+    description: Enable verbose logging
   use-syslog:
     type: boolean
     default: False
@@ -62,3 +70,11 @@ options:
       within the cloud.  This is useful in deployments where its not
       possible to increase MTU on switches and physical servers to
       accomodate the packet overhead of using GRE tunnels.
+  database-user:
+    default: nova
+    type: string
+    description: Username for database access
+  database:
+    default: nova
+    type: string
+    description: Database name

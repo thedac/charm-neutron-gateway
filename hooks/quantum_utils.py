@@ -1,6 +1,7 @@
 from charmhelpers.core.host import (
     service_running,
-    service_stop
+    service_stop,
+    service_restart
 )
 from charmhelpers.core.hookenv import (
     log,
@@ -9,8 +10,9 @@ from charmhelpers.core.hookenv import (
     unit_private_ip
 )
 from charmhelpers.fetch import (
+    apt_upgrade,
+    apt_update,
     apt_install,
-    apt_update
 )
 from charmhelpers.contrib.network.ovs import (
     add_bridge,
@@ -22,6 +24,10 @@ from charmhelpers.contrib.openstack.utils import (
     get_os_codename_install_source,
     get_os_codename_package,
     get_hostname
+)
+
+from charmhelpers.contrib.openstack.neutron import (
+    determine_dkms_package
 )
 
 import charmhelpers.contrib.openstack.context as context
@@ -37,13 +43,16 @@ from quantum_contexts import (
     QuantumGatewayContext,
     NetworkServiceContext,
     L3AgentContext,
-    QuantumSharedDBContext,
     ExternalPortContext,
 )
+
+from copy import deepcopy
 
 
 def valid_plugin():
     return config('plugin') in CORE_PLUGIN[networking_name()]
+
+QUANTUM_CONF_DIR = '/etc/quantum'
 
 QUANTUM_OVS_PLUGIN_CONF = \
     "/etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini"
@@ -54,8 +63,12 @@ QUANTUM_PLUGIN_CONF = {
     NVP: QUANTUM_NVP_PLUGIN_CONF
 }
 
+NEUTRON_CONF_DIR = '/etc/neutron'
+
 NEUTRON_OVS_PLUGIN_CONF = \
     "/etc/neutron/plugins/openvswitch/ovs_neutron_plugin.ini"
+NEUTRON_ML2_PLUGIN_CONF = \
+    "/etc/neutron/plugins/ml2/ml2_conf.ini"
 NEUTRON_NVP_PLUGIN_CONF = \
     "/etc/neutron/plugins/nicira/nvp.ini"
 NEUTRON_PLUGIN_CONF = {
@@ -69,12 +82,14 @@ QUANTUM_GATEWAY_PKGS = {
         "quantum-l3-agent",
         "quantum-dhcp-agent",
         'python-mysqldb',
+        'python-psycopg2',
         "nova-api-metadata"
     ],
     NVP: [
         "openvswitch-switch",
         "quantum-dhcp-agent",
         'python-mysqldb',
+        'python-psycopg2',
         "nova-api-metadata"
     ]
 }
@@ -86,12 +101,17 @@ NEUTRON_GATEWAY_PKGS = {
         "neutron-l3-agent",
         "neutron-dhcp-agent",
         'python-mysqldb',
+        'python-psycopg2',
         'python-oslo.config',  # Force upgrade
-        "nova-api-metadata"
+        "nova-api-metadata",
+        "neutron-plugin-metering-agent",
+        "neutron-lbaas-agent",
+        "openswan"
     ],
     NVP: [
         "neutron-dhcp-agent",
         'python-mysqldb',
+        'python-psycopg2',
         'python-oslo.config',  # Force upgrade
         "nova-api-metadata"
     ]
@@ -102,16 +122,11 @@ GATEWAY_PKGS = {
     NEUTRON: NEUTRON_GATEWAY_PKGS,
 }
 
-EARLY_PACKAGES = {
-    OVS: ['openvswitch-datapath-dkms'],
-    NVP: []
-}
-
 
 def get_early_packages():
     '''Return a list of package for pre-install based on configured plugin'''
-    if config('plugin') in EARLY_PACKAGES:
-        pkgs = EARLY_PACKAGES[config('plugin')]
+    if config('plugin') in [OVS]:
+        pkgs = determine_dkms_package()
     else:
         return []
 
@@ -123,7 +138,13 @@ def get_early_packages():
 
 def get_packages():
     '''Return a list of packages for install based on the configured plugin'''
-    return GATEWAY_PKGS[networking_name()][config('plugin')]
+    packages = deepcopy(GATEWAY_PKGS[networking_name()][config('plugin')])
+    if (get_os_codename_install_source(config('openstack-origin'))
+            >= 'icehouse' and config('plugin') == 'ovs'):
+        # NOTE(jamespage) neutron-vpn-agent supercedes l3-agent for icehouse
+        packages.remove('neutron-l3-agent')
+        packages.append('neutron-vpn-agent')
+    return packages
 
 
 def get_common_package():
@@ -145,13 +166,19 @@ NEUTRON_L3_AGENT_CONF = "/etc/neutron/l3_agent.ini"
 NEUTRON_DHCP_AGENT_CONF = "/etc/neutron/dhcp_agent.ini"
 NEUTRON_DNSMASQ_CONF = "/etc/neutron/dnsmasq.conf"
 NEUTRON_METADATA_AGENT_CONF = "/etc/neutron/metadata_agent.ini"
+NEUTRON_METERING_AGENT_CONF = "/etc/neutron/metering_agent.ini"
+NEUTRON_LBAAS_AGENT_CONF = "/etc/neutron/lbaas_agent.ini"
+NEUTRON_VPNAAS_AGENT_CONF = "/etc/neutron/vpn_agent.ini"
+NEUTRON_FWAAS_CONF = "/etc/neutron/fwaas_driver.ini"
 
+NOVA_CONF_DIR = '/etc/nova'
 NOVA_CONF = "/etc/nova/nova.conf"
 
 NOVA_CONFIG_FILES = {
     NOVA_CONF: {
-        'hook_contexts': [context.AMQPContext(),
-                          QuantumSharedDBContext(),
+        'hook_contexts': [context.AMQPContext(ssl_dir=NOVA_CONF_DIR),
+                          context.SharedDBContext(ssl_dir=NOVA_CONF_DIR),
+                          context.PostgresqlDBContext(),
                           NetworkServiceContext(),
                           QuantumGatewayContext(),
                           SyslogContext()],
@@ -191,7 +218,7 @@ NEUTRON_SHARED_CONFIG_FILES.update(NOVA_CONFIG_FILES)
 
 QUANTUM_OVS_CONFIG_FILES = {
     QUANTUM_CONF: {
-        'hook_contexts': [context.AMQPContext(),
+        'hook_contexts': [context.AMQPContext(ssl_dir=QUANTUM_CONF_DIR),
                           QuantumGatewayContext(),
                           SyslogContext()],
         'services': ['quantum-l3-agent',
@@ -200,13 +227,12 @@ QUANTUM_OVS_CONFIG_FILES = {
                      'quantum-plugin-openvswitch-agent']
     },
     QUANTUM_L3_AGENT_CONF: {
-        'hook_contexts': [NetworkServiceContext()],
+        'hook_contexts': [NetworkServiceContext(),
+                          QuantumGatewayContext()],
         'services': ['quantum-l3-agent']
     },
-    # TODO: Check to see if this is actually required
     QUANTUM_OVS_PLUGIN_CONF: {
-        'hook_contexts': [QuantumSharedDBContext(),
-                          QuantumGatewayContext()],
+        'hook_contexts': [QuantumGatewayContext()],
         'services': ['quantum-plugin-openvswitch-agent']
     },
     EXT_PORT_CONF: {
@@ -218,23 +244,49 @@ QUANTUM_OVS_CONFIG_FILES.update(QUANTUM_SHARED_CONFIG_FILES)
 
 NEUTRON_OVS_CONFIG_FILES = {
     NEUTRON_CONF: {
-        'hook_contexts': [context.AMQPContext(),
+        'hook_contexts': [context.AMQPContext(ssl_dir=NEUTRON_CONF_DIR),
                           QuantumGatewayContext(),
                           SyslogContext()],
         'services': ['neutron-l3-agent',
                      'neutron-dhcp-agent',
                      'neutron-metadata-agent',
-                     'neutron-plugin-openvswitch-agent']
+                     'neutron-plugin-openvswitch-agent',
+                     'neutron-plugin-metering-agent',
+                     'neutron-metering-agent',
+                     'neutron-lbaas-agent',
+                     'neutron-plugin-vpn-agent',
+                     'neutron-vpn-agent']
     },
     NEUTRON_L3_AGENT_CONF: {
         'hook_contexts': [NetworkServiceContext(),
-                          L3AgentContext()],
+                          L3AgentContext(),
+                          QuantumGatewayContext()],
         'services': ['neutron-l3-agent']
     },
-    # TODO: Check to see if this is actually required
+    NEUTRON_METERING_AGENT_CONF: {
+        'hook_contexts': [QuantumGatewayContext()],
+        'services': ['neutron-plugin-metering-agent',
+                     'neutron-metering-agent']
+    },
+    NEUTRON_LBAAS_AGENT_CONF: {
+        'hook_contexts': [QuantumGatewayContext()],
+        'services': ['neutron-lbaas-agent']
+    },
+    NEUTRON_VPNAAS_AGENT_CONF: {
+        'hook_contexts': [QuantumGatewayContext()],
+        'services': ['neutron-plugin-vpn-agent',
+                     'neutron-vpn-agent']
+    },
+    NEUTRON_FWAAS_CONF: {
+        'hook_contexts': [QuantumGatewayContext()],
+        'services': ['neutron-l3-agent']
+    },
     NEUTRON_OVS_PLUGIN_CONF: {
-        'hook_contexts': [QuantumSharedDBContext(),
-                          QuantumGatewayContext()],
+        'hook_contexts': [QuantumGatewayContext()],
+        'services': ['neutron-plugin-openvswitch-agent']
+    },
+    NEUTRON_ML2_PLUGIN_CONF: {
+        'hook_contexts': [QuantumGatewayContext()],
         'services': ['neutron-plugin-openvswitch-agent']
     },
     EXT_PORT_CONF: {
@@ -246,7 +298,7 @@ NEUTRON_OVS_CONFIG_FILES.update(NEUTRON_SHARED_CONFIG_FILES)
 
 QUANTUM_NVP_CONFIG_FILES = {
     QUANTUM_CONF: {
-        'hook_contexts': [context.AMQPContext()],
+        'hook_contexts': [context.AMQPContext(ssl_dir=QUANTUM_CONF_DIR)],
         'services': ['quantum-dhcp-agent', 'quantum-metadata-agent']
     },
 }
@@ -254,7 +306,7 @@ QUANTUM_NVP_CONFIG_FILES.update(QUANTUM_SHARED_CONFIG_FILES)
 
 NEUTRON_NVP_CONFIG_FILES = {
     NEUTRON_CONF: {
-        'hook_contexts': [context.AMQPContext()],
+        'hook_contexts': [context.AMQPContext(ssl_dir=NEUTRON_CONF_DIR)],
         'services': ['neutron-dhcp-agent', 'neutron-metadata-agent']
     },
 }
@@ -280,6 +332,14 @@ def register_configs():
 
     plugin = config('plugin')
     name = networking_name()
+    if plugin == 'ovs':
+        # NOTE: deal with switch to ML2 plugin for >= icehouse
+        drop_config = NEUTRON_ML2_PLUGIN_CONF
+        if release >= 'icehouse':
+            drop_config = NEUTRON_OVS_PLUGIN_CONF
+        if drop_config in CONFIG_FILES[name][plugin]:
+            CONFIG_FILES[name][plugin].pop(drop_config)
+
     for conf in CONFIG_FILES[name][plugin]:
         configs.register(conf,
                          CONFIG_FILES[name][plugin][conf]['hook_contexts'])
@@ -305,8 +365,9 @@ def restart_map():
                     that should be restarted when file changes.
     '''
     _map = {}
+    plugin = config('plugin')
     name = networking_name()
-    for f, ctxt in CONFIG_FILES[name][config('plugin')].iteritems():
+    for f, ctxt in CONFIG_FILES[name][plugin].iteritems():
         svcs = []
         for svc in ctxt['services']:
             svcs.append(svc)
@@ -335,8 +396,7 @@ def reassign_agent_resources():
         ''' Try to import neutronclient instead for havana+ '''
         from neutronclient.v2_0 import client
 
-    # TODO: Fixup for https keystone
-    auth_url = 'http://%(keystone_host)s:%(auth_port)s/v2.0' % env
+    auth_url = '%(auth_protocol)s://%(keystone_host)s:%(auth_port)s/v2.0' % env
     quantum = client.Client(username=env['service_username'],
                             password=env['service_password'],
                             tenant_name=env['service_tenant'],
@@ -404,17 +464,22 @@ def reassign_agent_resources():
         index += 1
 
 
-def do_openstack_upgrade(configs):
+def services():
+    ''' Returns a list of services associate with this charm '''
+    _services = []
+    for v in restart_map().values():
+        _services = _services + v
+    return list(set(_services))
+
+
+def do_openstack_upgrade():
     """
     Perform an upgrade.  Takes care of upgrading packages, rewriting
     configs, database migrations and potentially any other post-upgrade
     actions.
-
-    :param configs: The charms main OSConfigRenderer object.
     """
     new_src = config('openstack-origin')
     new_os_rel = get_os_codename_install_source(new_src)
-
     log('Performing OpenStack upgrade to %s.' % (new_os_rel))
 
     configure_installation_source(new_src)
@@ -423,15 +488,16 @@ def do_openstack_upgrade(configs):
         '--option', 'Dpkg::Options::=--force-confdef',
     ]
     apt_update(fatal=True)
-    apt_install(packages=get_early_packages(),
-                options=dpkg_opts,
-                fatal=True)
-    apt_install(packages=get_packages(),
-                options=dpkg_opts,
-                fatal=True)
+    apt_upgrade(options=dpkg_opts,
+                fatal=True, dist=True)
+    apt_install(get_early_packages(), fatal=True)
+    apt_install(get_packages(), fatal=True)
 
     # set CONFIGS to load templates from new release
-    configs.set_release(openstack_release=new_os_rel)
+    configs = register_configs()
+    configs.write_all()
+    [service_restart(s) for s in services()]
+    return configs
 
 
 def configure_ovs():
