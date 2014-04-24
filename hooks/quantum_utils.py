@@ -294,7 +294,8 @@ QUANTUM_N1KV_CONFIG_FILES.update(QUANTUM_SHARED_CONFIG_FILES)
 
 NEUTRON_N1KV_CONFIG_FILES = {
     NEUTRON_CONF: {
-        'hook_contexts': [context.AMQPContext()],
+        'hook_contexts': [context.AMQPContext(),
+                          SyslogContext()],
         'services': ['neutron-dhcp-agent',
                      'neutron-metadata-agent']
     },
