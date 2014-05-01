@@ -51,6 +51,14 @@ options:
     type: string
     description: RabbitMQ Virtual Host
     default: openstack
+  debug:
+    default: False
+    type: boolean
+    description: Enable debug logging
+  verbose:
+    default: False
+    type: boolean
+    description: Enable verbose logging
   use-syslog:
     type: boolean
     default: False
@@ -69,3 +77,11 @@ options:
     description: |
       Optional configuration to support use of linux router
       Note that this is used only for Cisco n1kv plugin.
+  database-user:
+    default: nova
+    type: string
+    description: Username for database access
+  database:
+    default: nova
+    type: string
+    description: Database name

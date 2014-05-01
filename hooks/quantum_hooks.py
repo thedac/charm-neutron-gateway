@@ -5,6 +5,7 @@ from base64 import b64decode
 from charmhelpers.core.hookenv import (
     log, ERROR, WARNING,
     config,
+    is_relation_made,
     relation_get,
     relation_set,
     relation_ids,
@@ -48,10 +49,6 @@ from quantum_utils import (
     reassign_agent_resources,
     stop_services
 )
-from quantum_contexts import (
-    DB_USER, QUANTUM_DB,
-    NOVA_DB_USER, NOVA_DB,
-)
 
 hooks = Hooks()
 CONFIGS = register_configs()
@@ -79,8 +76,16 @@ def install():
 @hooks.hook('config-changed')
 @restart_on_change(restart_map())
 def config_changed():
+    global CONFIGS
     if openstack_upgrade_available(get_common_package()):
-        do_openstack_upgrade(CONFIGS)
+        CONFIGS = do_openstack_upgrade()
+    # Re-run joined hooks as config might have changed
+    for r_id in relation_ids('shared-db'):
+        db_joined(relation_id=r_id)
+    for r_id in relation_ids('pgsql-db'):
+        pgsql_db_joined(relation_id=r_id)
+    for r_id in relation_ids('amqp'):
+        amqp_joined(relation_id=r_id)
     if valid_plugin():
         CONFIGS.write_all()
         configure_ovs()
@@ -98,22 +103,34 @@ def config_changed():
 
 @hooks.hook('upgrade-charm')
 def upgrade_charm():
-    # NOTE(jamespage): Deal with changes to rabbitmq configuration for
-    # common virtual host across services
-    for r_id in relation_ids('amqp'):
-        amqp_joined(relation_id=r_id)
     install()
     config_changed()
 
 
 @hooks.hook('shared-db-relation-joined')
-def db_joined():
-    relation_set(quantum_username=DB_USER,
-                 quantum_database=QUANTUM_DB,
-                 quantum_hostname=unit_get('private-address'),
-                 nova_username=NOVA_DB_USER,
-                 nova_database=NOVA_DB,
-                 nova_hostname=unit_get('private-address'))
+def db_joined(relation_id=None):
+    if is_relation_made('pgsql-db'):
+        # raise error
+        e = ('Attempting to associate a mysql database when there is already '
+             'associated a postgresql one')
+        log(e, level=ERROR)
+        raise Exception(e)
+    relation_set(username=config('database-user'),
+                 database=config('database'),
+                 hostname=unit_get('private-address'),
+                 relation_id=relation_id)
+
+
+@hooks.hook('pgsql-db-relation-joined')
+def pgsql_db_joined(relation_id=None):
+    if is_relation_made('shared-db'):
+        # raise error
+        e = ('Attempting to associate a postgresql database when there'
+             ' is already associated a mysql one')
+        log(e, level=ERROR)
+        raise Exception(e)
+    relation_set(database=config('database'),
+                 relation_id=relation_id)
 
 
 @hooks.hook('amqp-relation-joined')
@@ -123,7 +140,17 @@ def amqp_joined(relation_id=None):
                  vhost=config('rabbit-vhost'))
 
 
+@hooks.hook('amqp-relation-departed')
+@restart_on_change(restart_map())
+def amqp_departed():
+    if 'amqp' not in CONFIGS.complete_contexts():
+        log('amqp relation incomplete. Peer not ready?')
+        return
+    CONFIGS.write_all()
+
+
 @hooks.hook('shared-db-relation-changed',
+            'pgsql-db-relation-changed',
             'amqp-relation-changed',
             'cluster-relation-changed',
             'cluster-relation-joined')

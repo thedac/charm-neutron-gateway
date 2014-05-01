@@ -45,6 +45,7 @@ def patch_open():
 
 
 class _TestQuantumContext(CharmTestCase):
+
     def setUp(self):
         super(_TestQuantumContext, self).setUp(quantum_contexts, TO_PATCH)
         self.config.side_effect = self.test_config.get
@@ -81,27 +82,8 @@ class _TestQuantumContext(CharmTestCase):
         self.assertEquals(self.context(), self.data_result)
 
 
-class TestQuantumSharedDBContext(_TestQuantumContext):
-    def setUp(self):
-        super(TestQuantumSharedDBContext, self).setUp()
-        self.context = quantum_contexts.QuantumSharedDBContext()
-        self.test_relation.set(
-            {'db_host': '10.5.0.1',
-             'nova_password': 'novapass',
-             'quantum_password': 'quantumpass'}
-        )
-        self.data_result = {
-            'database_host': '10.5.0.1',
-            'nova_user': 'nova',
-            'nova_password': 'novapass',
-            'nova_db': 'nova',
-            'quantum_user': 'quantum',
-            'quantum_password': 'quantumpass',
-            'quantum_db': 'quantum'
-        }
-
-
 class TestNetworkServiceContext(_TestQuantumContext):
+
     def setUp(self):
         super(TestNetworkServiceContext, self).setUp()
         self.context = quantum_contexts.NetworkServiceContext()
@@ -134,6 +116,7 @@ class TestNetworkServiceContext(_TestQuantumContext):
 
 
 class TestExternalPortContext(CharmTestCase):
+
     def setUp(self):
         super(TestExternalPortContext, self).setUp(quantum_contexts,
                                                    TO_PATCH)
@@ -157,6 +140,7 @@ class TestExternalPortContext(CharmTestCase):
         }
         absent_macs = "aa:a5:ae:ae:ab:a4 "
         config_macs = absent_macs + " " + machine_macs['eth2']
+
         def get_hwaddr(arg):
             return machine_macs[arg]
         self.config.return_value = config_macs
@@ -166,11 +150,11 @@ class TestExternalPortContext(CharmTestCase):
                           {'ext_port': 'eth2'})
         self.config.return_value = absent_macs
         self.assertEquals(quantum_contexts.ExternalPortContext()(),
-                         None)
-                           
+                          None)
 
 
 class TestL3AgentContext(CharmTestCase):
+
     def setUp(self):
         super(TestL3AgentContext, self).setUp(quantum_contexts,
                                               TO_PATCH)
@@ -201,6 +185,7 @@ class TestL3AgentContext(CharmTestCase):
 
 
 class TestQuantumGatewayContext(CharmTestCase):
+
     def setUp(self):
         super(TestQuantumGatewayContext, self).setUp(quantum_contexts,
                                                      TO_PATCH)
@@ -209,12 +194,10 @@ class TestQuantumGatewayContext(CharmTestCase):
     @patch.object(quantum_contexts, 'get_shared_secret')
     @patch.object(quantum_contexts, 'get_host_ip')
     def test_all(self, _host_ip, _secret):
-        def side_effect(arg):
-            return_values = {'plugin': 'ovs',
-                             'instance-mtu': 1420,
-                             'openstack-origin': 'foo'}
-            return return_values[arg]
-        self.config.side_effect = side_effect
+        self.test_config.set('plugin', 'ovs')
+        self.test_config.set('debug', False)
+        self.test_config.set('verbose', True)
+        self.test_config.set('instance-mtu', 1420)
         self.get_os_codename_install_source.return_value = 'folsom'
         _host_ip.return_value = '10.5.0.1'
         _secret.return_value = 'testsecret'
@@ -224,11 +207,14 @@ class TestQuantumGatewayContext(CharmTestCase):
             'instance_mtu': 1420,
             'core_plugin': "quantum.plugins.openvswitch.ovs_quantum_plugin."
                            "OVSQuantumPluginV2",
-            'plugin': 'ovs'
+            'plugin': 'ovs',
+            'debug': False,
+            'verbose': True
         })
 
 
 class TestSharedSecret(CharmTestCase):
+
     def setUp(self):
         super(TestSharedSecret, self).setUp(quantum_contexts,
                                             TO_PATCH)
@@ -258,6 +244,7 @@ class TestSharedSecret(CharmTestCase):
 
 
 class TestHostIP(CharmTestCase):
+
     def setUp(self):
         super(TestHostIP, self).setUp(quantum_contexts,
                                       TO_PATCH)
@@ -287,7 +274,8 @@ class TestHostIP(CharmTestCase):
 
     @patch('dns.resolver.query')
     def test_get_host_ip_hostname_unresolvable(self, _query):
-        class NXDOMAIN(Exception): pass
+        class NXDOMAIN(Exception):
+            pass
         _query.side_effect = NXDOMAIN()
         self.assertRaises(NXDOMAIN, quantum_contexts.get_host_ip,
                           'missing.example.com')
@@ -303,6 +291,7 @@ class TestHostIP(CharmTestCase):
 
 
 class TestNetworkingName(CharmTestCase):
+
     def setUp(self):
         super(TestNetworkingName,
               self).setUp(quantum_contexts,
