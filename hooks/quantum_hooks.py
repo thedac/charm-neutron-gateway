@@ -93,7 +93,7 @@ def config_changed():
         log('Please provide a valid plugin config', level=ERROR)
         sys.exit(1)
     if config('plugin') == 'n1kv':
-        if config('l3-agent') == 'enable':
+        if config('enable-l3-agent'):
             if not service_running('neutron-l3-agent'):
                 service_start('neutron-l3-agent')
         else:
