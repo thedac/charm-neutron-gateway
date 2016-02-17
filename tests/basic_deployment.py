@@ -885,7 +885,7 @@ class NeutronGatewayBasicDeployment(OpenStackAmuletDeployment):
                     'project_name': 'services',
                     'username': 'nova',
                     'password': nova_cc_relation['service_password'],
-                    'auth_url': ep,
+                    'auth_url': ep.split('/v')[0],
                     'region': 'RegionOne',
                     'service_metadata_proxy': 'True',
                     'metadata_proxy_shared_secret': u.not_null
