@@ -193,6 +193,10 @@ class NeutronGatewayBasicDeployment(OpenStackAmuletDeployment):
                             'nova-scheduler',
                             'nova-conductor']
 
+        if self._get_openstack_release_string() >= 'liberty':
+            nova_cc_services.remove('nova-api-ec2')
+            nova_cc_services.remove('nova-objectstore')
+
         commands = {
             self.mysql_sentry: ['mysql'],
             self.keystone_sentry: ['keystone'],
