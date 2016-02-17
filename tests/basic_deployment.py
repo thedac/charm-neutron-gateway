@@ -193,6 +193,10 @@ class NeutronGatewayBasicDeployment(OpenStackAmuletDeployment):
                             'nova-scheduler',
                             'nova-conductor']
 
+        if self._get_openstack_release_string() >= 'liberty':
+            nova_cc_services.remove('nova-api-ec2')
+            nova_cc_services.remove('nova-objectstore')
+
         commands = {
             self.mysql_sentry: ['mysql'],
             self.keystone_sentry: ['keystone'],
@@ -874,16 +878,29 @@ class NeutronGatewayBasicDeployment(OpenStackAmuletDeployment):
             expected['oslo_concurrency'] = {
                 'lock_path': '/var/lock/nova'
             }
-            expected['neutron'] = {
-                'auth_strategy': 'keystone',
-                'url': nova_cc_relation['quantum_url'],
-                'admin_tenant_name': 'services',
-                'admin_username': 'nova',
-                'admin_password': nova_cc_relation['service_password'],
-                'admin_auth_url': ep,
-                'service_metadata_proxy': 'True',
-                'metadata_proxy_shared_secret': u.not_null
-            }
+            if self._get_openstack_release() >= self.trusty_mitaka:
+                expected['neutron'] = {
+                    'url': nova_cc_relation['quantum_url'],
+                    'auth_plugin': 'password',
+                    'project_name': 'services',
+                    'username': 'nova',
+                    'password': nova_cc_relation['service_password'],
+                    'auth_url': ep.split('/v')[0],
+                    'region': 'RegionOne',
+                    'service_metadata_proxy': 'True',
+                    'metadata_proxy_shared_secret': u.not_null
+                }
+            else:
+                expected['neutron'] = {
+                    'auth_strategy': 'keystone',
+                    'url': nova_cc_relation['quantum_url'],
+                    'admin_tenant_name': 'services',
+                    'admin_username': 'nova',
+                    'admin_password': nova_cc_relation['service_password'],
+                    'admin_auth_url': ep,
+                    'service_metadata_proxy': 'True',
+                    'metadata_proxy_shared_secret': u.not_null
+                }
         else:
             # Juno or earlier
             expected['DEFAULT'].update({
