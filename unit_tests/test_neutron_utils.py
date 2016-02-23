@@ -170,6 +170,19 @@ class TestQuantumUtils(CharmTestCase):
         self.assertTrue('python-pymysql' in packages)
 
     @patch.object(neutron_utils, 'git_install_requested')
+    def test_get_packages_ovs_mitaka(self, git_requested):
+        git_requested.return_value = False
+        self.config.return_value = 'ovs'
+        self.get_os_codename_install_source.return_value = 'mitaka'
+        packages = neutron_utils.get_packages()
+        self.assertTrue('neutron-metering-agent' in packages)
+        self.assertFalse('neutron-plugin-metering-agent' in packages)
+        self.assertTrue('neutron-openvswitch-agent' in packages)
+        self.assertFalse('neutron-plugin-openvswitch-agent' in packages)
+        self.assertFalse('python-mysqldb' in packages)
+        self.assertTrue('python-pymysql' in packages)
+
+    @patch.object(neutron_utils, 'git_install_requested')
     def test_get_packages_l3ha(self, git_requested):
         git_requested.return_value = False
         self.config.return_value = 'ovs'
