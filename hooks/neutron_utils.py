@@ -102,6 +102,8 @@ NEUTRON_OVS_PLUGIN_CONF = \
     "/etc/neutron/plugins/openvswitch/ovs_neutron_plugin.ini"
 NEUTRON_ML2_PLUGIN_CONF = \
     "/etc/neutron/plugins/ml2/ml2_conf.ini"
+NEUTRON_OVS_AGENT_CONF = \
+    "/etc/neutron/plugins/ml2/openvswitch_agent.ini"
 NEUTRON_NVP_PLUGIN_CONF = \
     "/etc/neutron/plugins/nicira/nvp.ini"
 NEUTRON_NSX_PLUGIN_CONF = \
@@ -279,6 +281,10 @@ def get_packages():
             # Switch out to actual metering agent package
             packages.remove('neutron-plugin-metering-agent')
             packages.append('neutron-metering-agent')
+        if source >= 'mitaka':
+            # Switch out to actual ovs agent package
+            packages.remove('neutron-plugin-openvswitch-agent')
+            packages.append('neutron-openvswitch-agent')
     packages.extend(determine_l3ha_packages())
 
     if git_install_requested():
@@ -452,6 +458,10 @@ NEUTRON_OVS_CONFIG_FILES = {
         'hook_contexts': [NeutronGatewayContext()],
         'services': ['neutron-plugin-openvswitch-agent']
     },
+    NEUTRON_OVS_AGENT_CONF: {
+        'hook_contexts': [NeutronGatewayContext()],
+        'services': ['neutron-openvswitch-agent']
+    },
     EXT_PORT_CONF: {
         'hook_contexts': [ExternalPortContext()],
         'services': ['ext-port']
@@ -568,21 +578,57 @@ CONFIG_FILES = {
 }
 
 
-def register_configs():
-    ''' Register config files with their respective contexts. '''
-    release = get_os_codename_install_source(config('openstack-origin'))
-    configs = templating.OSConfigRenderer(templates_dir=TEMPLATES,
-                                          openstack_release=release)
+SERVICE_RENAMES = {
+    'mitaka': {
+        'neutron-plugin-openvswitch-agent': 'neutron-openvswitch-agent',
+        'neutron-plugin-metering-agent': 'neutron-metering-agent',
+    }
+}
 
-    plugin = remap_plugin(config('plugin'))
-    name = networking_name()
+
+def remap_service(service_name):
+    '''
+    Remap service names based on openstack release to deal
+    with changes to packaging
+
+    :param service_name: name of service to remap
+    :returns: remapped service name or original value
+    '''
+    source = get_os_codename_install_source(config('openstack-origin'))
+    for rename_source in SERVICE_RENAMES:
+        if (source >= rename_source and
+                service_name in SERVICE_RENAMES[rename_source]):
+            service_name = SERVICE_RENAMES[rename_source][service_name]
+    return service_name
+
+
+def resolve_config_files(name, plugin, release):
+    '''
+    Resolve configuration files and contexts
+
+    :param name: neutron or quantum
+    :param plugin: shortname of plugin e.g. ovs
+    :param release: openstack release codename
+    :returns: dict of configuration files, contexts
+              and associated services
+    '''
+    config_files = deepcopy(CONFIG_FILES)
     if plugin == 'ovs':
         # NOTE: deal with switch to ML2 plugin for >= icehouse
-        drop_config = NEUTRON_ML2_PLUGIN_CONF
+        drop_config = [NEUTRON_ML2_PLUGIN_CONF,
+                       NEUTRON_OVS_AGENT_CONF]
         if release >= 'icehouse':
-            drop_config = NEUTRON_OVS_PLUGIN_CONF
-        if drop_config in CONFIG_FILES[name][plugin]:
-            CONFIG_FILES[name][plugin].pop(drop_config)
+            # ovs -> ml2
+            drop_config = [NEUTRON_OVS_PLUGIN_CONF,
+                           NEUTRON_OVS_AGENT_CONF]
+        if release >= 'mitaka':
+            # ml2 -> ovs_agent
+            drop_config = [NEUTRON_OVS_PLUGIN_CONF,
+                           NEUTRON_ML2_PLUGIN_CONF]
+
+        for _config in drop_config:
+            if _config in config_files[name][plugin]:
+                config_files[name][plugin].pop(_config)
 
     if is_relation_made('amqp-nova'):
         amqp_nova_ctxt = context.AMQPContext(
@@ -593,20 +639,34 @@ def register_configs():
         amqp_nova_ctxt = context.AMQPContext(
             ssl_dir=NOVA_CONF_DIR,
             rel_name='amqp')
-    CONFIG_FILES[name][plugin][NOVA_CONF][
+    config_files[name][plugin][NOVA_CONF][
         'hook_contexts'].append(amqp_nova_ctxt)
-    for conf in CONFIG_FILES[name][plugin]:
+    return config_files
+
+
+def register_configs():
+    ''' Register config files with their respective contexts. '''
+    release = get_os_codename_install_source(config('openstack-origin'))
+    plugin = remap_plugin(config('plugin'))
+    name = networking_name()
+    config_files = resolve_config_files(name, plugin, release)
+    configs = templating.OSConfigRenderer(templates_dir=TEMPLATES,
+                                          openstack_release=release)
+    for conf in config_files[name][plugin]:
         configs.register(conf,
-                         CONFIG_FILES[name][plugin][conf]['hook_contexts'])
+                         config_files[name][plugin][conf]['hook_contexts'])
     return configs
 
 
 def stop_services():
+    release = get_os_codename_install_source(config('openstack-origin'))
+    plugin = remap_plugin(config('plugin'))
     name = networking_name()
+    config_files = resolve_config_files(name, plugin, release)
     svcs = set()
-    for ctxt in CONFIG_FILES[name][config('plugin')].itervalues():
+    for ctxt in config_files[name][config('plugin')].itervalues():
         for svc in ctxt['services']:
-            svcs.add(svc)
+            svcs.add(remap_service(svc))
     for svc in svcs:
         service_stop(svc)
 
@@ -619,15 +679,17 @@ def restart_map():
     :returns: dict: A dictionary mapping config file to lists of services
                     that should be restarted when file changes.
     '''
-    _map = {}
-    plugin = config('plugin')
+    release = get_os_codename_install_source(config('openstack-origin'))
+    plugin = remap_plugin(config('plugin'))
     name = networking_name()
-    for f, ctxt in CONFIG_FILES[name][plugin].iteritems():
-        svcs = []
+    config_files = resolve_config_files(name, plugin, release)
+    _map = {}
+    for f, ctxt in config_files[name][plugin].iteritems():
+        svcs = set()
         for svc in ctxt['services']:
-            svcs.append(svc)
+            svcs.add(remap_service(svc))
         if svcs:
-            _map[f] = svcs
+            _map[f] = list(svcs)
     return _map
 
 

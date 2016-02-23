@@ -185,6 +185,10 @@ class NeutronGatewayBasicDeployment(OpenStackAmuletDeployment):
 
         if self._get_openstack_release() <= self.trusty_juno:
             neutron_services.append('neutron-vpn-agent')
+        if self._get_openstack_release() >= self.trusty_mitaka:
+            # neutron-plugin-openvswitch-agent -> neutron-openvswitch-agent
+            neutron_services.remove('neutron-plugin-openvswitch-agent')
+            neutron_services.append('neutron-openvswitch-agent')
 
         nova_cc_services = ['nova-api-ec2',
                             'nova-api-os-compute',
@@ -885,7 +889,7 @@ class NeutronGatewayBasicDeployment(OpenStackAmuletDeployment):
                     'project_name': 'services',
                     'username': 'nova',
                     'password': nova_cc_relation['service_password'],
-                    'auth_url': ep,
+                    'auth_url': ep.split('/v')[0],
                     'region': 'RegionOne',
                     'service_metadata_proxy': 'True',
                     'metadata_proxy_shared_secret': u.not_null
