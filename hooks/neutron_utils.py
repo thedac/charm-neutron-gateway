@@ -577,7 +577,6 @@ CONFIG_FILES = {
     },
 }
 
-
 SERVICE_RENAMES = {
     'mitaka': {
         'neutron-plugin-openvswitch-agent': 'neutron-openvswitch-agent',

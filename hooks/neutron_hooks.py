@@ -315,7 +315,7 @@ def update_nrpe_config():
         shortname="netns",
         description='Network Namespace check {%s}' % current_unit,
         check_cmd='check_status_file.py -f /var/lib/nagios/netns-check.txt'
-        )
+    )
     nrpe_setup.write()
 
 

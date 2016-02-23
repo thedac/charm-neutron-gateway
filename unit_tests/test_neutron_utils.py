@@ -509,7 +509,6 @@ class TestQuantumUtils(CharmTestCase):
                  neutron_utils.QUANTUM_L3_AGENT_CONF,
                  neutron_utils.QUANTUM_OVS_PLUGIN_CONF,
                  neutron_utils.EXT_PORT_CONF]
-        print configs.register.mock_calls
         for conf in confs:
             configs.register.assert_any_call(conf, ANY)
 
