@@ -55,7 +55,7 @@ class TestL3AgentContext(CharmTestCase):
         self.config.side_effect = self.test_config.get
 
     @patch('neutron_contexts.NeutronAPIContext')
-    def test_no_ext_netid(self,  _NeutronAPIContext):
+    def test_no_ext_netid(self, _NeutronAPIContext):
         _NeutronAPIContext.return_value = \
             DummyNeutronAPIContext(return_value={'enable_dvr': False})
         self.test_config.set('run-internal-router', 'none')
