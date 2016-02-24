@@ -14,6 +14,7 @@ with patch('charmhelpers.core.hookenv.status_set'):
 TO_PATCH = [
     'do_openstack_upgrade',
     'config_changed',
+    'get_common_package',
 ]
 
 

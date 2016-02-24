@@ -89,9 +89,8 @@ def remap_plugin(plugin):
 
 def core_plugin():
     plugin = remap_plugin(config('plugin'))
-    if (get_os_codename_install_source(config('openstack-origin'))
-            >= 'icehouse'
-            and plugin == OVS):
+    if (get_os_codename_install_source(config('openstack-origin')) >=
+            'icehouse' and plugin == OVS):
         return NEUTRON_ML2_PLUGIN
     else:
         return CORE_PLUGIN[networking_name()][plugin]

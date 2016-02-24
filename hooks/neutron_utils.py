@@ -567,22 +567,46 @@ CONFIG_FILES = {
     },
 }
 
+SERVICE_RENAMES = {}
 
-def register_configs():
-    ''' Register config files with their respective contexts. '''
-    release = get_os_codename_install_source(config('openstack-origin'))
-    configs = templating.OSConfigRenderer(templates_dir=TEMPLATES,
-                                          openstack_release=release)
 
-    plugin = remap_plugin(config('plugin'))
-    name = networking_name()
+def remap_service(service_name):
+    '''
+    Remap service names based on openstack release to deal
+    with changes to packaging
+
+    :param service_name: name of service to remap
+    :returns: remapped service name or original value
+    '''
+    source = get_os_codename_install_source(config('openstack-origin'))
+    for rename_source in SERVICE_RENAMES:
+        if (source >= rename_source and
+                service_name in SERVICE_RENAMES[rename_source]):
+            service_name = SERVICE_RENAMES[rename_source][service_name]
+    return service_name
+
+
+def resolve_config_files(name, plugin, release):
+    '''
+    Resolve configuration files and contexts
+
+    :param name: neutron or quantum
+    :param plugin: shortname of plugin e.g. ovs
+    :param release: openstack release codename
+    :returns: dict of configuration files, contexts
+              and associated services
+    '''
+    config_files = deepcopy(CONFIG_FILES)
     if plugin == 'ovs':
         # NOTE: deal with switch to ML2 plugin for >= icehouse
-        drop_config = NEUTRON_ML2_PLUGIN_CONF
+        drop_config = [NEUTRON_ML2_PLUGIN_CONF]
         if release >= 'icehouse':
-            drop_config = NEUTRON_OVS_PLUGIN_CONF
-        if drop_config in CONFIG_FILES[name][plugin]:
-            CONFIG_FILES[name][plugin].pop(drop_config)
+            # ovs -> ml2
+            drop_config = [NEUTRON_OVS_PLUGIN_CONF]
+
+        for _config in drop_config:
+            if _config in config_files[name][plugin]:
+                config_files[name][plugin].pop(_config)
 
     if is_relation_made('amqp-nova'):
         amqp_nova_ctxt = context.AMQPContext(
@@ -593,11 +617,22 @@ def register_configs():
         amqp_nova_ctxt = context.AMQPContext(
             ssl_dir=NOVA_CONF_DIR,
             rel_name='amqp')
-    CONFIG_FILES[name][plugin][NOVA_CONF][
+    config_files[name][plugin][NOVA_CONF][
         'hook_contexts'].append(amqp_nova_ctxt)
-    for conf in CONFIG_FILES[name][plugin]:
+    return config_files
+
+
+def register_configs():
+    ''' Register config files with their respective contexts. '''
+    release = get_os_codename_install_source(config('openstack-origin'))
+    plugin = remap_plugin(config('plugin'))
+    name = networking_name()
+    config_files = resolve_config_files(name, plugin, release)
+    configs = templating.OSConfigRenderer(templates_dir=TEMPLATES,
+                                          openstack_release=release)
+    for conf in config_files[name][plugin]:
         configs.register(conf,
-                         CONFIG_FILES[name][plugin][conf]['hook_contexts'])
+                         config_files[name][plugin][conf]['hook_contexts'])
     return configs
 
 
@@ -619,15 +654,17 @@ def restart_map():
     :returns: dict: A dictionary mapping config file to lists of services
                     that should be restarted when file changes.
     '''
-    _map = {}
-    plugin = config('plugin')
+    release = get_os_codename_install_source(config('openstack-origin'))
+    plugin = remap_plugin(config('plugin'))
     name = networking_name()
-    for f, ctxt in CONFIG_FILES[name][plugin].iteritems():
-        svcs = []
+    config_files = resolve_config_files(name, plugin, release)
+    _map = {}
+    for f, ctxt in config_files[name][plugin].iteritems():
+        svcs = set()
         for svc in ctxt['services']:
-            svcs.append(svc)
+            svcs.add(remap_service(svc))
         if svcs:
-            _map[f] = svcs
+            _map[f] = list(svcs)
     return _map
 
 
