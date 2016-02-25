@@ -102,6 +102,8 @@ NEUTRON_OVS_PLUGIN_CONF = \
     "/etc/neutron/plugins/openvswitch/ovs_neutron_plugin.ini"
 NEUTRON_ML2_PLUGIN_CONF = \
     "/etc/neutron/plugins/ml2/ml2_conf.ini"
+NEUTRON_OVS_AGENT_CONF = \
+    "/etc/neutron/plugins/ml2/openvswitch_agent.ini"
 NEUTRON_NVP_PLUGIN_CONF = \
     "/etc/neutron/plugins/nicira/nvp.ini"
 NEUTRON_NSX_PLUGIN_CONF = \
@@ -279,6 +281,10 @@ def get_packages():
             # Switch out to actual metering agent package
             packages.remove('neutron-plugin-metering-agent')
             packages.append('neutron-metering-agent')
+        if source >= 'mitaka':
+            # Switch out to actual ovs agent package
+            packages.remove('neutron-plugin-openvswitch-agent')
+            packages.append('neutron-openvswitch-agent')
     packages.extend(determine_l3ha_packages())
 
     if git_install_requested():
@@ -452,6 +458,10 @@ NEUTRON_OVS_CONFIG_FILES = {
         'hook_contexts': [NeutronGatewayContext()],
         'services': ['neutron-plugin-openvswitch-agent']
     },
+    NEUTRON_OVS_AGENT_CONF: {
+        'hook_contexts': [NeutronGatewayContext()],
+        'services': ['neutron-openvswitch-agent']
+    },
     EXT_PORT_CONF: {
         'hook_contexts': [ExternalPortContext()],
         'services': ['ext-port']
@@ -567,7 +577,12 @@ CONFIG_FILES = {
     },
 }
 
-SERVICE_RENAMES = {}
+SERVICE_RENAMES = {
+    'mitaka': {
+        'neutron-plugin-openvswitch-agent': 'neutron-openvswitch-agent',
+        'neutron-plugin-metering-agent': 'neutron-metering-agent',
+    }
+}
 
 
 def remap_service(service_name):
@@ -599,10 +614,16 @@ def resolve_config_files(name, plugin, release):
     config_files = deepcopy(CONFIG_FILES)
     if plugin == 'ovs':
         # NOTE: deal with switch to ML2 plugin for >= icehouse
-        drop_config = [NEUTRON_ML2_PLUGIN_CONF]
+        drop_config = [NEUTRON_ML2_PLUGIN_CONF,
+                       NEUTRON_OVS_AGENT_CONF]
         if release >= 'icehouse':
             # ovs -> ml2
-            drop_config = [NEUTRON_OVS_PLUGIN_CONF]
+            drop_config = [NEUTRON_OVS_PLUGIN_CONF,
+                           NEUTRON_OVS_AGENT_CONF]
+        if release >= 'mitaka':
+            # ml2 -> ovs_agent
+            drop_config = [NEUTRON_OVS_PLUGIN_CONF,
+                           NEUTRON_ML2_PLUGIN_CONF]
 
         for _config in drop_config:
             if _config in config_files[name][plugin]:
@@ -637,11 +658,14 @@ def register_configs():
 
 
 def stop_services():
+    release = get_os_codename_install_source(config('openstack-origin'))
+    plugin = remap_plugin(config('plugin'))
     name = networking_name()
+    config_files = resolve_config_files(name, plugin, release)
     svcs = set()
-    for ctxt in CONFIG_FILES[name][config('plugin')].itervalues():
+    for ctxt in config_files[name][config('plugin')].itervalues():
         for svc in ctxt['services']:
-            svcs.add(svc)
+            svcs.add(remap_service(svc))
     for svc in svcs:
         service_stop(svc)
 

@@ -170,6 +170,19 @@ class TestQuantumUtils(CharmTestCase):
         self.assertTrue('python-pymysql' in packages)
 
     @patch.object(neutron_utils, 'git_install_requested')
+    def test_get_packages_ovs_mitaka(self, git_requested):
+        git_requested.return_value = False
+        self.config.return_value = 'ovs'
+        self.get_os_codename_install_source.return_value = 'mitaka'
+        packages = neutron_utils.get_packages()
+        self.assertTrue('neutron-metering-agent' in packages)
+        self.assertFalse('neutron-plugin-metering-agent' in packages)
+        self.assertTrue('neutron-openvswitch-agent' in packages)
+        self.assertFalse('neutron-plugin-openvswitch-agent' in packages)
+        self.assertFalse('python-mysqldb' in packages)
+        self.assertTrue('python-pymysql' in packages)
+
+    @patch.object(neutron_utils, 'git_install_requested')
     def test_get_packages_l3ha(self, git_requested):
         git_requested.return_value = False
         self.config.return_value = 'ovs'
@@ -354,6 +367,41 @@ class TestQuantumUtils(CharmTestCase):
         }
 
         self.assertDictEqual(neutron_utils.restart_map(), ex_map)
+
+    def test_restart_map_ovs_mitaka(self):
+        self.config.return_value = 'ovs'
+        self.get_os_codename_install_source.return_value = 'mitaka'
+        ex_map = {
+            neutron_utils.NEUTRON_CONF: ['neutron-l3-agent',
+                                         'neutron-dhcp-agent',
+                                         'neutron-metadata-agent',
+                                         'neutron-openvswitch-agent',
+                                         'neutron-metering-agent',
+                                         'neutron-lbaas-agent',
+                                         'neutron-plugin-vpn-agent',
+                                         'neutron-vpn-agent'],
+            neutron_utils.NEUTRON_DNSMASQ_CONF: ['neutron-dhcp-agent'],
+            neutron_utils.NEUTRON_LBAAS_AGENT_CONF:
+            ['neutron-lbaas-agent'],
+            neutron_utils.NEUTRON_OVS_AGENT_CONF:
+            ['neutron-openvswitch-agent'],
+            neutron_utils.NEUTRON_METADATA_AGENT_CONF:
+            ['neutron-metadata-agent'],
+            neutron_utils.NEUTRON_VPNAAS_AGENT_CONF: [
+                'neutron-plugin-vpn-agent',
+                'neutron-vpn-agent'],
+            neutron_utils.NEUTRON_L3_AGENT_CONF: ['neutron-l3-agent',
+                                                  'neutron-vpn-agent'],
+            neutron_utils.NEUTRON_DHCP_AGENT_CONF: ['neutron-dhcp-agent'],
+            neutron_utils.NEUTRON_FWAAS_CONF: ['neutron-l3-agent',
+                                               'neutron-vpn-agent'],
+            neutron_utils.NEUTRON_METERING_AGENT_CONF:
+            ['neutron-metering-agent'],
+            neutron_utils.NOVA_CONF: ['nova-api-metadata'],
+            neutron_utils.EXT_PORT_CONF: ['ext-port'],
+            neutron_utils.PHY_NIC_MTU_CONF: ['os-charm-phy-nic-mtu'],
+        }
+        self.assertEqual(ex_map, neutron_utils.restart_map())
 
     def test_restart_map_ovs_odl(self):
         self.config.return_value = 'ovs-odl'
