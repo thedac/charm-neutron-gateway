@@ -22,10 +22,6 @@ provides:
   quantum-network-service:
     interface: quantum
 requires:
-  shared-db:
-    interface: mysql-shared
-  pgsql-db:
-    interface: pgsql
   amqp:
     interface: rabbitmq
   amqp-nova:

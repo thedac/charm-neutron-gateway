@@ -61,7 +61,6 @@ class NeutronGatewayBasicDeployment(OpenStackAmuletDeployment):
         """Add all of the relations for the services."""
         relations = {
             'keystone:shared-db': 'mysql:shared-db',
-            'neutron-gateway:shared-db': 'mysql:shared-db',
             'neutron-gateway:amqp': 'rabbitmq-server:amqp',
             'nova-cloud-controller:quantum-network-service':
             'neutron-gateway:quantum-network-service',
@@ -172,6 +171,12 @@ class NeutronGatewayBasicDeployment(OpenStackAmuletDeployment):
                                             password='openstack',
                                             tenant_name='admin',
                                             region_name='RegionOne')
+
+    def get_private_address(self, unit):
+        """Return the private address of the given sentry unit."""
+        address, retcode = unit.run('unit-get private-address')
+        assert retcode == 0, 'error retrieving unit private address'
+        return address.strip()
 
     def test_100_services(self):
         """Verify the expected services are running on the corresponding
@@ -292,39 +297,6 @@ class NeutronGatewayBasicDeployment(OpenStackAmuletDeployment):
         ret = u.validate_user_data(expected, actual)
         if ret:
             amulet.raise_status(amulet.FAIL, msg=ret)
-
-    def test_200_neutron_gateway_mysql_shared_db_relation(self):
-        """Verify the neutron-gateway to mysql shared-db relation data"""
-        u.log.debug('Checking neutron-gateway:mysql db relation data...')
-        unit = self.neutron_gateway_sentry
-        relation = ['shared-db', 'mysql:shared-db']
-        expected = {
-            'private-address': u.valid_ip,
-            'database': 'nova',
-            'username': 'nova',
-            'hostname': u.valid_ip
-        }
-
-        ret = u.validate_relation_data(unit, relation, expected)
-        if ret:
-            message = u.relation_error('neutron-gateway shared-db', ret)
-            amulet.raise_status(amulet.FAIL, msg=message)
-
-    def test_201_mysql_neutron_gateway_shared_db_relation(self):
-        """Verify the mysql to neutron-gateway shared-db relation data"""
-        u.log.debug('Checking mysql:neutron-gateway db relation data...')
-        unit = self.mysql_sentry
-        relation = ['shared-db', 'neutron-gateway:shared-db']
-        expected = {
-            'private-address': u.valid_ip,
-            'password': u.not_null,
-            'db_host': u.valid_ip
-        }
-
-        ret = u.validate_relation_data(unit, relation, expected)
-        if ret:
-            message = u.relation_error('mysql shared-db', ret)
-            amulet.raise_status(amulet.FAIL, msg=message)
 
     def test_202_neutron_gateway_rabbitmq_amqp_relation(self):
         """Verify the neutron-gateway to rabbitmq-server amqp relation data"""
@@ -575,7 +547,7 @@ class NeutronGatewayBasicDeployment(OpenStackAmuletDeployment):
             'DEFAULT': {
                 'verbose': 'False',
                 'debug': 'False',
-                'core_plugin': 'neutron.plugins.ml2.plugin.Ml2Plugin',
+                'core_plugin': 'ml2',
                 'control_exchange': 'neutron',
                 'notification_driver': 'neutron.openstack.common.notifier.'
                                        'list_notifier',
@@ -624,7 +596,6 @@ class NeutronGatewayBasicDeployment(OpenStackAmuletDeployment):
 
         unit = self.neutron_gateway_sentry
         conf = '/etc/neutron/plugins/ml2/ml2_conf.ini'
-        ng_db_rel = unit.relation('shared-db', 'mysql:shared-db')
 
         expected = {
             'ml2': {
@@ -640,7 +611,7 @@ class NeutronGatewayBasicDeployment(OpenStackAmuletDeployment):
             },
             'ovs': {
                 'enable_tunneling': 'True',
-                'local_ip': ng_db_rel['private-address']
+                'local_ip': self.get_private_address(unit)
             },
             'agent': {
                 'tunnel_types': 'gre',
@@ -787,8 +758,6 @@ class NeutronGatewayBasicDeployment(OpenStackAmuletDeployment):
         unit = self.neutron_gateway_sentry
         ep = self.keystone.service_catalog.url_for(service_type='identity',
                                                    endpoint_type='publicURL')
-        ng_db_rel = unit.relation('shared-db',
-                                  'mysql:shared-db')
         nova_cc_relation = self.nova_cc_sentry.relation(
             'quantum-network-service',
             'neutron-gateway:quantum-network-service')
@@ -802,7 +771,7 @@ class NeutronGatewayBasicDeployment(OpenStackAmuletDeployment):
             'root_helper': 'sudo neutron-rootwrap '
                            '/etc/neutron/rootwrap.conf',
             'state_path': '/var/lib/neutron',
-            'nova_metadata_ip': ng_db_rel['private-address'],
+            'nova_metadata_ip': self.get_private_address(unit),
             'nova_metadata_port': '8775',
             'cache_url': 'memory://?default_ttl=5'
         }

@@ -5,11 +5,9 @@ from base64 import b64decode
 from charmhelpers.core.hookenv import (
     log, ERROR, WARNING,
     config,
-    is_relation_made,
     relation_get,
     relation_set,
     relation_ids,
-    unit_get,
     Hooks,
     UnregisteredHookError,
     status_set,
@@ -52,7 +50,6 @@ from neutron_utils import (
     do_openstack_upgrade,
     get_packages,
     get_early_packages,
-    get_common_package,
     get_topics,
     git_install,
     git_install_requested,
@@ -69,6 +66,7 @@ from neutron_utils import (
     use_l3ha,
     REQUIRED_INTERFACES,
     check_optional_relations,
+    NEUTRON_COMMON,
 )
 
 hooks = Hooks()
@@ -82,7 +80,7 @@ def install():
     src = config('openstack-origin')
     if (lsb_release()['DISTRIB_CODENAME'] == 'precise' and
             src == 'distro'):
-        src = 'cloud:precise-folsom'
+        src = 'cloud:precise-icehouse'
     configure_installation_source(src)
     status_set('maintenance', 'Installing apt packages')
     apt_update(fatal=True)
@@ -115,7 +113,7 @@ def config_changed():
             CONFIGS.write_all()
 
     elif not config('action-managed-upgrade'):
-        if openstack_upgrade_available(get_common_package()):
+        if openstack_upgrade_available(NEUTRON_COMMON):
             status_set('maintenance', 'Running openstack upgrade')
             do_openstack_upgrade(CONFIGS)
 
@@ -126,10 +124,6 @@ def config_changed():
         create_sysctl(sysctl_dict, '/etc/sysctl.d/50-quantum-gateway.conf')
 
     # Re-run joined hooks as config might have changed
-    for r_id in relation_ids('shared-db'):
-        db_joined(relation_id=r_id)
-    for r_id in relation_ids('pgsql-db'):
-        pgsql_db_joined(relation_id=r_id)
     for r_id in relation_ids('amqp'):
         amqp_joined(relation_id=r_id)
     for r_id in relation_ids('amqp-nova'):
@@ -161,32 +155,6 @@ def upgrade_charm():
     install()
     config_changed()
     update_legacy_ha_files(force=True)
-
-
-@hooks.hook('shared-db-relation-joined')
-def db_joined(relation_id=None):
-    if is_relation_made('pgsql-db'):
-        # raise error
-        e = ('Attempting to associate a mysql database when there is already '
-             'associated a postgresql one')
-        log(e, level=ERROR)
-        raise Exception(e)
-    relation_set(username=config('database-user'),
-                 database=config('database'),
-                 hostname=unit_get('private-address'),
-                 relation_id=relation_id)
-
-
-@hooks.hook('pgsql-db-relation-joined')
-def pgsql_db_joined(relation_id=None):
-    if is_relation_made('shared-db'):
-        # raise error
-        e = ('Attempting to associate a postgresql database when there'
-             ' is already associated a mysql one')
-        log(e, level=ERROR)
-        raise Exception(e)
-    relation_set(database=config('database'),
-                 relation_id=relation_id)
 
 
 @hooks.hook('amqp-nova-relation-joined')
@@ -222,13 +190,11 @@ def amqp_departed():
     CONFIGS.write_all()
 
 
-@hooks.hook('shared-db-relation-changed',
-            'pgsql-db-relation-changed',
-            'amqp-relation-changed',
+@hooks.hook('amqp-relation-changed',
             'cluster-relation-changed',
             'cluster-relation-joined')
 @restart_on_change(restart_map())
-def db_amqp_changed():
+def amqp_changed():
     CONFIGS.write_all()
 
 
@@ -280,7 +246,7 @@ def stop():
 
 
 @hooks.hook('zeromq-configuration-relation-joined')
-@os_requires_version('kilo', 'neutron-common')
+@os_requires_version('kilo', NEUTRON_COMMON)
 def zeromq_configuration_relation_joined(relid=None):
     relation_set(relation_id=relid,
                  topics=" ".join(get_topics()),

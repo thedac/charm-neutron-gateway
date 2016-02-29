@@ -35,15 +35,12 @@ TO_PATCH = [
     'configure_ovs',
     'relation_set',
     'relation_ids',
-    'unit_get',
     'relation_get',
     'install_ca_cert',
-    'get_common_package',
     'execd_preinstall',
     'lsb_release',
     'stop_services',
     'b64decode',
-    'is_relation_made',
     'create_sysctl',
     'update_nrpe_config',
     'update_legacy_ha_files',
@@ -98,7 +95,7 @@ class TestQuantumHooks(CharmTestCase):
         self.test_config.set('openstack-origin', 'distro')
         self._call_hook('install')
         self.configure_installation_source.assert_called_with(
-            'cloud:precise-folsom'
+            'cloud:precise-icehouse'
         )
 
     @patch('sys.exit')
@@ -152,16 +149,12 @@ class TestQuantumHooks(CharmTestCase):
         self.openstack_upgrade_available.return_value = True
         self.valid_plugin.return_value = True
         self.relation_ids.side_effect = mock_relids
-        _db_joined = self.patch('db_joined')
-        _pgsql_db_joined = self.patch('pgsql_db_joined')
         _amqp_joined = self.patch('amqp_joined')
         _amqp_nova_joined = self.patch('amqp_nova_joined')
         _zmq_joined = self.patch('zeromq_configuration_relation_joined')
         self._call_hook('config-changed')
         self.assertTrue(self.do_openstack_upgrade.called)
         self.assertTrue(self.configure_ovs.called)
-        self.assertTrue(_db_joined.called)
-        self.assertTrue(_pgsql_db_joined.called)
         self.assertTrue(_amqp_joined.called)
         self.assertTrue(_amqp_nova_joined.called)
         self.assertTrue(_zmq_joined.called)
@@ -208,8 +201,6 @@ class TestQuantumHooks(CharmTestCase):
         self.openstack_upgrade_available.return_value = True
         self.valid_plugin.return_value = True
         self.relation_ids.side_effect = mock_relids
-        _db_joined = self.patch('db_joined')
-        _pgsql_db_joined = self.patch('pgsql_db_joined')
         _amqp_joined = self.patch('amqp_joined')
         _amqp_nova_joined = self.patch('amqp_nova_joined')
         _zmq_joined = self.patch('zeromq_configuration_relation_joined')
@@ -233,8 +224,6 @@ class TestQuantumHooks(CharmTestCase):
         self.git_install.assert_called_with(projects_yaml)
         self.assertFalse(self.do_openstack_upgrade.called)
         self.assertTrue(self.configure_ovs.called)
-        self.assertTrue(_db_joined.called)
-        self.assertTrue(_pgsql_db_joined.called)
         self.assertTrue(_amqp_joined.called)
         self.assertTrue(_amqp_nova_joined.called)
         self.assertTrue(_zmq_joined.called)
@@ -246,44 +235,6 @@ class TestQuantumHooks(CharmTestCase):
         self._call_hook('upgrade-charm')
         self.assertTrue(_install.called)
         self.assertTrue(_config_changed.called)
-
-    def test_db_joined(self):
-        self.is_relation_made.return_value = False
-        self.unit_get.return_value = 'myhostname'
-        self._call_hook('shared-db-relation-joined')
-        self.relation_set.assert_called_with(
-            username='nova',
-            database='nova',
-            hostname='myhostname',
-            relation_id=None
-        )
-
-    def test_db_joined_with_postgresql(self):
-        self.is_relation_made.return_value = True
-
-        with self.assertRaises(Exception) as context:
-            hooks.db_joined()
-        self.assertEqual(context.exception.message,
-                         'Attempting to associate a mysql database when there '
-                         'is already associated a postgresql one')
-
-    def test_postgresql_db_joined(self):
-        self.unit_get.return_value = 'myhostname'
-        self.is_relation_made.return_value = False
-        self._call_hook('pgsql-db-relation-joined')
-        self.relation_set.assert_called_with(
-            database='nova',
-            relation_id=None
-        )
-
-    def test_postgresql_joined_with_db(self):
-        self.is_relation_made.return_value = True
-
-        with self.assertRaises(Exception) as context:
-            hooks.pgsql_db_joined()
-        self.assertEqual(context.exception.message,
-                         'Attempting to associate a postgresql database when'
-                         ' there is already associated a mysql one')
 
     def test_amqp_joined(self):
         self._call_hook('amqp-relation-joined')
@@ -323,14 +274,6 @@ class TestQuantumHooks(CharmTestCase):
     def test_amqp_nova_changed(self):
         self.CONFIGS.complete_contexts.return_value = ['amqp-nova']
         self._call_hook('amqp-nova-relation-changed')
-        self.assertTrue(self.CONFIGS.write_all.called)
-
-    def test_shared_db_changed(self):
-        self._call_hook('shared-db-relation-changed')
-        self.assertTrue(self.CONFIGS.write_all.called)
-
-    def test_pgsql_db_changed(self):
-        self._call_hook('pgsql-db-relation-changed')
         self.assertTrue(self.CONFIGS.write_all.called)
 
     def test_nm_changed(self):

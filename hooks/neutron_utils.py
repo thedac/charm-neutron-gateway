@@ -43,7 +43,6 @@ from charmhelpers.contrib.hahelpers.cluster import (
 from charmhelpers.contrib.openstack.utils import (
     configure_installation_source,
     get_os_codename_install_source,
-    get_os_codename_package,
     git_install_requested,
     git_clone_and_install,
     git_src_dir,
@@ -68,12 +67,9 @@ from charmhelpers.contrib.openstack.context import (
 import charmhelpers.contrib.openstack.templating as templating
 from charmhelpers.contrib.openstack.neutron import headers_package
 from neutron_contexts import (
-    CORE_PLUGIN, OVS, NVP, NSX, N1KV, OVS_ODL,
-    NEUTRON, QUANTUM,
-    networking_name,
+    CORE_PLUGIN, OVS, NSX, N1KV, OVS_ODL,
     NeutronGatewayContext,
     L3AgentContext,
-    remap_plugin,
 )
 from charmhelpers.contrib.openstack.neutron import (
     parse_bridge_mappings,
@@ -83,23 +79,12 @@ from copy import deepcopy
 
 
 def valid_plugin():
-    return config('plugin') in CORE_PLUGIN[networking_name()]
+    return config('plugin') in CORE_PLUGIN
 
-QUANTUM_CONF_DIR = '/etc/quantum'
-
-QUANTUM_OVS_PLUGIN_CONF = \
-    "/etc/quantum/plugins/openvswitch/ovs_quantum_plugin.ini"
-QUANTUM_NVP_PLUGIN_CONF = \
-    "/etc/quantum/plugins/nicira/nvp.ini"
-QUANTUM_PLUGIN_CONF = {
-    OVS: QUANTUM_OVS_PLUGIN_CONF,
-    NVP: QUANTUM_NVP_PLUGIN_CONF,
-}
+NEUTRON_COMMON = 'neutron-common'
 
 NEUTRON_CONF_DIR = '/etc/neutron'
 
-NEUTRON_OVS_PLUGIN_CONF = \
-    "/etc/neutron/plugins/openvswitch/ovs_neutron_plugin.ini"
 NEUTRON_ML2_PLUGIN_CONF = \
     "/etc/neutron/plugins/ml2/ml2_conf.ini"
 NEUTRON_OVS_AGENT_CONF = \
@@ -110,30 +95,11 @@ NEUTRON_NSX_PLUGIN_CONF = \
     "/etc/neutron/plugins/vmware/nsx.ini"
 
 NEUTRON_PLUGIN_CONF = {
-    OVS: NEUTRON_OVS_PLUGIN_CONF,
-    NVP: NEUTRON_NVP_PLUGIN_CONF,
+    OVS: NEUTRON_ML2_PLUGIN_CONF,
     NSX: NEUTRON_NSX_PLUGIN_CONF,
 }
 
-QUANTUM_GATEWAY_PKGS = {
-    OVS: [
-        "quantum-plugin-openvswitch-agent",
-        "quantum-l3-agent",
-        "quantum-dhcp-agent",
-        'python-mysqldb',
-        'python-psycopg2',
-        "nova-api-metadata"
-    ],
-    NVP: [
-        "openvswitch-switch",
-        "quantum-dhcp-agent",
-        'python-mysqldb',
-        'python-psycopg2',
-        "nova-api-metadata"
-    ]
-}
-
-NEUTRON_GATEWAY_PKGS = {
+GATEWAY_PKGS = {
     OVS: [
         "neutron-plugin-openvswitch-agent",
         "openvswitch-switch",
@@ -146,7 +112,7 @@ NEUTRON_GATEWAY_PKGS = {
         "neutron-plugin-metering-agent",
         "neutron-lbaas-agent",
     ],
-    NVP: [
+    NSX: [
         "neutron-dhcp-agent",
         'python-mysqldb',
         'python-psycopg2',
@@ -171,16 +137,10 @@ NEUTRON_GATEWAY_PKGS = {
         "neutron-lbaas-agent",
     ],
 }
-NEUTRON_GATEWAY_PKGS[NSX] = NEUTRON_GATEWAY_PKGS[NVP]
-
-GATEWAY_PKGS = {
-    QUANTUM: QUANTUM_GATEWAY_PKGS,
-    NEUTRON: NEUTRON_GATEWAY_PKGS,
-}
 
 EARLY_PACKAGES = {
     OVS: ['openvswitch-datapath-dkms'],
-    NVP: [],
+    NSX: [],
     N1KV: [],
     OVS_ODL: [],
 }
@@ -261,8 +221,8 @@ def get_early_packages():
 
 def get_packages():
     '''Return a list of packages for install based on the configured plugin'''
-    plugin = remap_plugin(config('plugin'))
-    packages = deepcopy(GATEWAY_PKGS[networking_name()][plugin])
+    plugin = config('plugin')
+    packages = deepcopy(GATEWAY_PKGS[plugin])
     source = get_os_codename_install_source(config('openstack-origin'))
     if plugin == 'ovs':
         if (source >= 'icehouse' and
@@ -304,13 +264,6 @@ def determine_l3ha_packages():
     return []
 
 
-def get_common_package():
-    if get_os_codename_package('quantum-common', fatal=False) is not None:
-        return 'quantum-common'
-    else:
-        return 'neutron-common'
-
-
 def use_l3ha():
     return NeutronAPIContext()()['enable_l3ha']
 
@@ -347,19 +300,6 @@ NOVA_CONFIG_FILES = {
     },
 }
 
-QUANTUM_SHARED_CONFIG_FILES = {
-    QUANTUM_DHCP_AGENT_CONF: {
-        'hook_contexts': [NeutronGatewayContext()],
-        'services': ['quantum-dhcp-agent']
-    },
-    QUANTUM_METADATA_AGENT_CONF: {
-        'hook_contexts': [NetworkServiceContext(),
-                          NeutronGatewayContext()],
-        'services': ['quantum-metadata-agent']
-    },
-}
-QUANTUM_SHARED_CONFIG_FILES.update(NOVA_CONFIG_FILES)
-
 NEUTRON_SHARED_CONFIG_FILES = {
     NEUTRON_DHCP_AGENT_CONF: {
         'hook_contexts': [NeutronGatewayContext()],
@@ -376,38 +316,6 @@ NEUTRON_SHARED_CONFIG_FILES = {
     },
 }
 NEUTRON_SHARED_CONFIG_FILES.update(NOVA_CONFIG_FILES)
-
-QUANTUM_OVS_CONFIG_FILES = {
-    QUANTUM_CONF: {
-        'hook_contexts': [context.AMQPContext(ssl_dir=QUANTUM_CONF_DIR),
-                          NeutronGatewayContext(),
-                          SyslogContext(),
-                          context.ZeroMQContext(),
-                          context.NotificationDriverContext()],
-        'services': ['quantum-l3-agent',
-                     'quantum-dhcp-agent',
-                     'quantum-metadata-agent',
-                     'quantum-plugin-openvswitch-agent']
-    },
-    QUANTUM_L3_AGENT_CONF: {
-        'hook_contexts': [NetworkServiceContext(),
-                          NeutronGatewayContext()],
-        'services': ['quantum-l3-agent']
-    },
-    QUANTUM_OVS_PLUGIN_CONF: {
-        'hook_contexts': [NeutronGatewayContext()],
-        'services': ['quantum-plugin-openvswitch-agent']
-    },
-    EXT_PORT_CONF: {
-        'hook_contexts': [ExternalPortContext()],
-        'services': ['ext-port']
-    },
-    PHY_NIC_MTU_CONF: {
-        'hook_contexts': [PhyNICMTUContext()],
-        'services': ['os-charm-phy-nic-mtu']
-    }
-}
-QUANTUM_OVS_CONFIG_FILES.update(QUANTUM_SHARED_CONFIG_FILES)
 
 NEUTRON_OVS_CONFIG_FILES = {
     NEUTRON_CONF: {
@@ -450,7 +358,7 @@ NEUTRON_OVS_CONFIG_FILES = {
         'hook_contexts': [NeutronGatewayContext()],
         'services': ['neutron-l3-agent', 'neutron-vpn-agent']
     },
-    NEUTRON_OVS_PLUGIN_CONF: {
+    NEUTRON_ML2_PLUGIN_CONF: {
         'hook_contexts': [NeutronGatewayContext()],
         'services': ['neutron-plugin-openvswitch-agent']
     },
@@ -524,18 +432,7 @@ NEUTRON_OVS_ODL_CONFIG_FILES = {
 }
 NEUTRON_OVS_ODL_CONFIG_FILES.update(NEUTRON_SHARED_CONFIG_FILES)
 
-
-QUANTUM_NVP_CONFIG_FILES = {
-    QUANTUM_CONF: {
-        'hook_contexts': [context.AMQPContext(ssl_dir=QUANTUM_CONF_DIR),
-                          NeutronGatewayContext(),
-                          SyslogContext()],
-        'services': ['quantum-dhcp-agent', 'quantum-metadata-agent']
-    },
-}
-QUANTUM_NVP_CONFIG_FILES.update(QUANTUM_SHARED_CONFIG_FILES)
-
-NEUTRON_NVP_CONFIG_FILES = {
+NEUTRON_NSX_CONFIG_FILES = {
     NEUTRON_CONF: {
         'hook_contexts': [context.AMQPContext(ssl_dir=NEUTRON_CONF_DIR),
                           NeutronGatewayContext(),
@@ -543,7 +440,7 @@ NEUTRON_NVP_CONFIG_FILES = {
         'services': ['neutron-dhcp-agent', 'neutron-metadata-agent']
     },
 }
-NEUTRON_NVP_CONFIG_FILES.update(NEUTRON_SHARED_CONFIG_FILES)
+NEUTRON_NSX_CONFIG_FILES.update(NEUTRON_SHARED_CONFIG_FILES)
 
 NEUTRON_N1KV_CONFIG_FILES = {
     NEUTRON_CONF: {
@@ -564,17 +461,10 @@ NEUTRON_N1KV_CONFIG_FILES = {
 NEUTRON_N1KV_CONFIG_FILES.update(NEUTRON_SHARED_CONFIG_FILES)
 
 CONFIG_FILES = {
-    QUANTUM: {
-        NVP: QUANTUM_NVP_CONFIG_FILES,
-        OVS: QUANTUM_OVS_CONFIG_FILES,
-    },
-    NEUTRON: {
-        NSX: NEUTRON_NVP_CONFIG_FILES,
-        NVP: NEUTRON_NVP_CONFIG_FILES,
-        OVS: NEUTRON_OVS_CONFIG_FILES,
-        N1KV: NEUTRON_N1KV_CONFIG_FILES,
-        OVS_ODL: NEUTRON_OVS_ODL_CONFIG_FILES
-    },
+    NSX: NEUTRON_NSX_CONFIG_FILES,
+    OVS: NEUTRON_OVS_CONFIG_FILES,
+    N1KV: NEUTRON_N1KV_CONFIG_FILES,
+    OVS_ODL: NEUTRON_OVS_ODL_CONFIG_FILES
 }
 
 SERVICE_RENAMES = {
@@ -601,33 +491,26 @@ def remap_service(service_name):
     return service_name
 
 
-def resolve_config_files(name, plugin, release):
+def resolve_config_files(plugin, release):
     '''
     Resolve configuration files and contexts
 
-    :param name: neutron or quantum
     :param plugin: shortname of plugin e.g. ovs
     :param release: openstack release codename
     :returns: dict of configuration files, contexts
               and associated services
     '''
     config_files = deepcopy(CONFIG_FILES)
-    if plugin == 'ovs':
+    if plugin == OVS:
         # NOTE: deal with switch to ML2 plugin for >= icehouse
-        drop_config = [NEUTRON_ML2_PLUGIN_CONF,
-                       NEUTRON_OVS_AGENT_CONF]
-        if release >= 'icehouse':
-            # ovs -> ml2
-            drop_config = [NEUTRON_OVS_PLUGIN_CONF,
-                           NEUTRON_OVS_AGENT_CONF]
+        drop_config = [NEUTRON_OVS_AGENT_CONF]
         if release >= 'mitaka':
             # ml2 -> ovs_agent
-            drop_config = [NEUTRON_OVS_PLUGIN_CONF,
-                           NEUTRON_ML2_PLUGIN_CONF]
+            drop_config = [NEUTRON_ML2_PLUGIN_CONF]
 
         for _config in drop_config:
-            if _config in config_files[name][plugin]:
-                config_files[name][plugin].pop(_config)
+            if _config in config_files[plugin]:
+                config_files[plugin].pop(_config)
 
     if is_relation_made('amqp-nova'):
         amqp_nova_ctxt = context.AMQPContext(
@@ -638,7 +521,7 @@ def resolve_config_files(name, plugin, release):
         amqp_nova_ctxt = context.AMQPContext(
             ssl_dir=NOVA_CONF_DIR,
             rel_name='amqp')
-    config_files[name][plugin][NOVA_CONF][
+    config_files[plugin][NOVA_CONF][
         'hook_contexts'].append(amqp_nova_ctxt)
     return config_files
 
@@ -646,24 +529,22 @@ def resolve_config_files(name, plugin, release):
 def register_configs():
     ''' Register config files with their respective contexts. '''
     release = get_os_codename_install_source(config('openstack-origin'))
-    plugin = remap_plugin(config('plugin'))
-    name = networking_name()
-    config_files = resolve_config_files(name, plugin, release)
+    plugin = config('plugin')
+    config_files = resolve_config_files(plugin, release)
     configs = templating.OSConfigRenderer(templates_dir=TEMPLATES,
                                           openstack_release=release)
-    for conf in config_files[name][plugin]:
+    for conf in config_files[plugin]:
         configs.register(conf,
-                         config_files[name][plugin][conf]['hook_contexts'])
+                         config_files[plugin][conf]['hook_contexts'])
     return configs
 
 
 def stop_services():
     release = get_os_codename_install_source(config('openstack-origin'))
-    plugin = remap_plugin(config('plugin'))
-    name = networking_name()
-    config_files = resolve_config_files(name, plugin, release)
+    plugin = config('plugin')
+    config_files = resolve_config_files(plugin, release)
     svcs = set()
-    for ctxt in config_files[name][config('plugin')].itervalues():
+    for ctxt in config_files[config('plugin')].itervalues():
         for svc in ctxt['services']:
             svcs.add(remap_service(svc))
     for svc in svcs:
@@ -679,11 +560,10 @@ def restart_map():
                     that should be restarted when file changes.
     '''
     release = get_os_codename_install_source(config('openstack-origin'))
-    plugin = remap_plugin(config('plugin'))
-    name = networking_name()
-    config_files = resolve_config_files(name, plugin, release)
+    plugin = config('plugin')
+    config_files = resolve_config_files(plugin, release)
     _map = {}
-    for f, ctxt in config_files[name][plugin].iteritems():
+    for f, ctxt in config_files[plugin].iteritems():
         svcs = set()
         for svc in ctxt['services']:
             svcs.add(remap_service(svc))
