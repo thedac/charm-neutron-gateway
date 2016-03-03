@@ -9,7 +9,7 @@ from charmhelpers.contrib.openstack.utils import (
 
 from neutron_utils import (
     do_openstack_upgrade,
-    get_common_package,
+    NEUTRON_COMMON,
 )
 
 from neutron_hooks import (
@@ -26,7 +26,7 @@ def openstack_upgrade():
     code to run, otherwise a full service level upgrade will fire
     on config-changed."""
 
-    if do_action_openstack_upgrade(get_common_package(),
+    if do_action_openstack_upgrade(NEUTRON_COMMON,
                                    do_openstack_upgrade,
                                    CONFIGS):
         config_changed()

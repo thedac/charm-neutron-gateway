@@ -22,7 +22,6 @@ import charmhelpers.core.hookenv as hookenv
 TO_PATCH = [
     'config',
     'get_os_codename_install_source',
-    'get_os_codename_package',
     'apt_update',
     'apt_upgrade',
     'apt_install',
@@ -30,7 +29,6 @@ TO_PATCH = [
     'log',
     'add_bridge',
     'add_bridge_port',
-    'networking_name',
     'headers_package',
     'full_restart',
     'service_running',
@@ -41,7 +39,6 @@ TO_PATCH = [
     'service_stop',
     'determine_dkms_package',
     'service_restart',
-    'remap_plugin',
     'is_relation_made',
     'lsb_release',
     'mkdir',
@@ -59,7 +56,7 @@ openstack_origin_git = \
             branch: stable/juno}"""
 
 
-class TestQuantumUtils(CharmTestCase):
+class TestNeutronUtils(CharmTestCase):
 
     def assertDictEqual(self, d1, d2, msg=None):  # assertEqual uses for dicts
         for k, v1 in d1.iteritems():
@@ -72,14 +69,9 @@ class TestQuantumUtils(CharmTestCase):
                 self.assertEqual(v1, v2, msg)
 
     def setUp(self):
-        super(TestQuantumUtils, self).setUp(neutron_utils, TO_PATCH)
-        self.networking_name.return_value = 'neutron'
+        super(TestNeutronUtils, self).setUp(neutron_utils, TO_PATCH)
         self.headers_package.return_value = 'linux-headers-2.6.18'
         self._set_distrib_codename('trusty')
-
-        def noop(value):
-            return value
-        self.remap_plugin.side_effect = noop
 
     def tearDown(self):
         # Reset cached cache
@@ -90,8 +82,6 @@ class TestQuantumUtils(CharmTestCase):
 
     def test_valid_plugin(self):
         self.config.return_value = 'ovs'
-        self.assertTrue(neutron_utils.valid_plugin())
-        self.config.return_value = 'nvp'
         self.assertTrue(neutron_utils.valid_plugin())
         self.config.return_value = 'nsx'
         self.assertTrue(neutron_utils.valid_plugin())
@@ -108,8 +98,8 @@ class TestQuantumUtils(CharmTestCase):
             neutron_utils.get_early_packages(),
             ['openvswitch-datapath-dkms', 'linux-headers-2.6.18'])
 
-    def test_get_early_packages_nvp(self):
-        self.config.return_value = 'nvp'
+    def test_get_early_packages_nsx(self):
+        self.config.return_value = 'nsx'
         self.assertEquals(
             neutron_utils.get_early_packages(),
             [])
@@ -118,13 +108,6 @@ class TestQuantumUtils(CharmTestCase):
         self.config.return_value = 'noop'
         self.assertEquals(neutron_utils.get_early_packages(),
                           [])
-
-    @patch.object(neutron_utils, 'git_install_requested')
-    def test_get_packages_ovs(self, git_requested):
-        git_requested.return_value = False
-        self.config.return_value = 'ovs'
-        self.get_os_codename_install_source.return_value = 'havana'
-        self.assertNotEqual(neutron_utils.get_packages(), [])
 
     @patch.object(neutron_utils, 'git_install_requested')
     def test_get_packages_ovs_icehouse(self, git_requested):
@@ -297,7 +280,7 @@ class TestQuantumUtils(CharmTestCase):
                  neutron_utils.NOVA_CONF,
                  neutron_utils.NEUTRON_CONF,
                  neutron_utils.NEUTRON_L3_AGENT_CONF,
-                 neutron_utils.NEUTRON_OVS_PLUGIN_CONF,
+                 neutron_utils.NEUTRON_ML2_PLUGIN_CONF,
                  neutron_utils.EXT_PORT_CONF]
         for conf in confs:
             configs.register.assert_any_call(conf, ANY)
@@ -326,7 +309,7 @@ class TestQuantumUtils(CharmTestCase):
                  neutron_utils.NOVA_CONF,
                  neutron_utils.NEUTRON_CONF,
                  neutron_utils.NEUTRON_L3_AGENT_CONF,
-                 neutron_utils.NEUTRON_OVS_PLUGIN_CONF,
+                 neutron_utils.NEUTRON_ML2_PLUGIN_CONF,
                  neutron_utils.EXT_PORT_CONF]
         for conf in confs:
             configs.register.assert_any_call(conf, ANY)
@@ -347,7 +330,7 @@ class TestQuantumUtils(CharmTestCase):
             neutron_utils.NEUTRON_DNSMASQ_CONF: ['neutron-dhcp-agent'],
             neutron_utils.NEUTRON_LBAAS_AGENT_CONF:
             ['neutron-lbaas-agent'],
-            neutron_utils.NEUTRON_OVS_PLUGIN_CONF:
+            neutron_utils.NEUTRON_ML2_PLUGIN_CONF:
             ['neutron-plugin-openvswitch-agent'],
             neutron_utils.NEUTRON_METADATA_AGENT_CONF:
             ['neutron-metadata-agent'],
@@ -437,17 +420,6 @@ class TestQuantumUtils(CharmTestCase):
 
         self.assertDictEqual(neutron_utils.restart_map(), ex_map)
 
-    def test_register_configs_nvp(self):
-        self.config.return_value = 'nvp'
-        self.is_relation_made.return_value = False
-        configs = neutron_utils.register_configs()
-        confs = [neutron_utils.NEUTRON_DHCP_AGENT_CONF,
-                 neutron_utils.NEUTRON_METADATA_AGENT_CONF,
-                 neutron_utils.NOVA_CONF,
-                 neutron_utils.NEUTRON_CONF]
-        for conf in confs:
-            configs.register.assert_any_call(conf, ANY)
-
     def test_register_configs_nsx(self):
         self.config.return_value = 'nsx'
         configs = neutron_utils.register_configs()
@@ -457,19 +429,6 @@ class TestQuantumUtils(CharmTestCase):
                  neutron_utils.NEUTRON_CONF]
         for conf in confs:
             configs.register.assert_any_call(conf, ANY)
-
-    def test_stop_services_nvp(self):
-        self.config.return_value = 'nvp'
-        neutron_utils.stop_services()
-        calls = [
-            call('neutron-dhcp-agent'),
-            call('nova-api-metadata'),
-            call('neutron-metadata-agent')
-        ]
-        self.service_stop.assert_has_calls(
-            calls,
-            any_order=True,
-        )
 
     def test_stop_services_ovs(self):
         self.config.return_value = 'ovs'
@@ -484,41 +443,17 @@ class TestQuantumUtils(CharmTestCase):
             any_order=True,
         )
 
-    def test_restart_map_nvp(self):
-        self.config.return_value = 'nvp'
-        ex_map = {
-            neutron_utils.NEUTRON_DHCP_AGENT_CONF: ['neutron-dhcp-agent'],
-            neutron_utils.NEUTRON_DNSMASQ_CONF: ['neutron-dhcp-agent'],
-            neutron_utils.NOVA_CONF: ['nova-api-metadata'],
-            neutron_utils.NEUTRON_CONF: ['neutron-dhcp-agent',
-                                         'neutron-metadata-agent'],
-            neutron_utils.NEUTRON_METADATA_AGENT_CONF:
-            ['neutron-metadata-agent'],
-        }
-        self.assertEquals(neutron_utils.restart_map(), ex_map)
-
     def test_register_configs_pre_install(self):
         self.config.return_value = 'ovs'
         self.is_relation_made.return_value = False
-        self.networking_name.return_value = 'quantum'
         configs = neutron_utils.register_configs()
-        confs = [neutron_utils.QUANTUM_DHCP_AGENT_CONF,
-                 neutron_utils.QUANTUM_METADATA_AGENT_CONF,
-                 neutron_utils.NOVA_CONF,
-                 neutron_utils.QUANTUM_CONF,
-                 neutron_utils.QUANTUM_L3_AGENT_CONF,
-                 neutron_utils.QUANTUM_OVS_PLUGIN_CONF,
+        confs = [neutron_utils.NOVA_CONF,
+                 neutron_utils.NEUTRON_CONF,
+                 neutron_utils.NEUTRON_L3_AGENT_CONF,
+                 neutron_utils.NEUTRON_ML2_PLUGIN_CONF,
                  neutron_utils.EXT_PORT_CONF]
         for conf in confs:
             configs.register.assert_any_call(conf, ANY)
-
-    def test_get_common_package_quantum(self):
-        self.get_os_codename_package.return_value = 'folsom'
-        self.assertEquals(neutron_utils.get_common_package(), 'quantum-common')
-
-    def test_get_common_package_neutron(self):
-        self.get_os_codename_package.return_value = None
-        self.assertEquals(neutron_utils.get_common_package(), 'neutron-common')
 
     def test_copy_file_without_update(self):
         src = 'dummy_source_dir/dummy_file'
@@ -707,12 +642,12 @@ cluster2 = ['cluster2-machine1.internal', 'cluster2-machine2.internal'
             'cluster2-machine3.internal']
 
 
-class TestQuantumAgentReallocation(CharmTestCase):
+class TestNeutronAgentReallocation(CharmTestCase):
 
     def setUp(self):
         if not neutronclient:
             raise self.skipTest('Skipping, no neutronclient installed')
-        super(TestQuantumAgentReallocation, self).setUp(neutron_utils,
+        super(TestNeutronAgentReallocation, self).setUp(neutron_utils,
                                                         TO_PATCH)
 
     def tearDown(self):

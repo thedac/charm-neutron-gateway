@@ -33,7 +33,8 @@ options:
       For series=Trusty we support cloud archives for openstack-release:
          * juno
          * kilo
-         * ...
+         * liberty
+         * mitaka
 
       NOTE: updating this setting to a source that is known to provide
       a later version of OpenStack will trigger a software upgrade.
@@ -60,10 +61,10 @@ options:
       Network configuration plugin to use for quantum.
       Supported values include:
 
-        ovs - Open vSwitch
-        nvp|nsx - Nicira NVP/VMware NSX
+        ovs - ML2 + Open vSwitch
+        nsx - VMware NSX
         n1kv - Cisco N1kv
-        ovs-odl - Open vSwitch with OpenDayLight Controller
+        ovs-odl - ML2 + Open vSwitch with OpenDayLight Controller
   ext-port:
     type: string
     default:
@@ -140,14 +141,6 @@ options:
     description: |
       Optional configuration to support use of linux router
       Note that this is used only for Cisco n1kv plugin.
-  database-user:
-    default: nova
-    type: string
-    description: Username for database access
-  database:
-    default: nova
-    type: string
-    description: Database name
   nagios_context:
     default: "juju"
     type: string

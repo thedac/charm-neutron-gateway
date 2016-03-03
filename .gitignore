@@ -3,5 +3,6 @@ bin
 tags
 .tox
 .testrepository
+*.pyc
 *.sw[nop]
 *.pyc

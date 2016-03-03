@@ -15,7 +15,6 @@ TO_PATCH = [
     'apt_install',
     'config',
     'eligible_leader',
-    'get_os_codename_install_source',
     'unit_get',
 ]
 
@@ -132,7 +131,6 @@ class TestNeutronGatewayContext(CharmTestCase):
         _rids.return_value = ['neutron-plugin-api:0']
         _runits.return_value = ['neutron-api/0']
         _rget.side_effect = lambda *args, **kwargs: rdata
-        self.get_os_codename_install_source.return_value = 'folsom'
         _host_ip.return_value = '10.5.0.1'
         _secret.return_value = 'testsecret'
         ctxt = neutron_contexts.NeutronGatewayContext()()
@@ -142,8 +140,7 @@ class TestNeutronGatewayContext(CharmTestCase):
             'enable_l3ha': True,
             'local_ip': '10.5.0.1',
             'instance_mtu': 1420,
-            'core_plugin': "quantum.plugins.openvswitch.ovs_quantum_plugin."
-                           "OVSQuantumPluginV2",
+            'core_plugin': "ml2",
             'plugin': 'ovs',
             'debug': False,
             'verbose': True,
@@ -177,7 +174,7 @@ class TestSharedSecret(CharmTestCase):
             self.assertEquals(neutron_contexts.get_shared_secret(),
                               'secret_thing')
             _open.assert_called_with(
-                neutron_contexts.SHARED_SECRET.format('quantum'), 'w')
+                neutron_contexts.SHARED_SECRET.format('neutron'), 'w')
             _file.write.assert_called_with('secret_thing')
 
     @patch('os.path')
@@ -188,7 +185,7 @@ class TestSharedSecret(CharmTestCase):
             self.assertEquals(neutron_contexts.get_shared_secret(),
                               'secret_thing')
             _open.assert_called_with(
-                neutron_contexts.SHARED_SECRET.format('quantum'), 'r')
+                neutron_contexts.SHARED_SECRET.format('neutron'), 'r')
 
 
 class TestHostIP(CharmTestCase):
@@ -245,36 +242,7 @@ class TestMisc(CharmTestCase):
               self).setUp(neutron_contexts,
                           TO_PATCH)
 
-    def test_lt_havana(self):
-        self.get_os_codename_install_source.return_value = 'folsom'
-        self.assertEquals(neutron_contexts.networking_name(), 'quantum')
-
-    def test_ge_havana(self):
-        self.get_os_codename_install_source.return_value = 'havana'
-        self.assertEquals(neutron_contexts.networking_name(), 'neutron')
-
-    def test_remap_plugin(self):
-        self.get_os_codename_install_source.return_value = 'havana'
-        self.assertEquals(neutron_contexts.remap_plugin('nvp'), 'nvp')
-        self.assertEquals(neutron_contexts.remap_plugin('nsx'), 'nvp')
-
-    def test_remap_plugin_icehouse(self):
-        self.get_os_codename_install_source.return_value = 'icehouse'
-        self.assertEquals(neutron_contexts.remap_plugin('nvp'), 'nsx')
-        self.assertEquals(neutron_contexts.remap_plugin('nsx'), 'nsx')
-
-    def test_remap_plugin_noop(self):
-        self.get_os_codename_install_source.return_value = 'icehouse'
-        self.assertEquals(neutron_contexts.remap_plugin('ovs'), 'ovs')
-
-    def test_core_plugin(self):
-        self.get_os_codename_install_source.return_value = 'havana'
-        self.config.return_value = 'ovs'
-        self.assertEquals(neutron_contexts.core_plugin(),
-                          neutron_contexts.NEUTRON_OVS_PLUGIN)
-
     def test_core_plugin_ml2(self):
-        self.get_os_codename_install_source.return_value = 'icehouse'
         self.config.return_value = 'ovs'
         self.assertEquals(neutron_contexts.core_plugin(),
                           neutron_contexts.NEUTRON_ML2_PLUGIN)
