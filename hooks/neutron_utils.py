@@ -70,6 +70,18 @@ from neutron_contexts import (
     CORE_PLUGIN, OVS, NSX, N1KV, OVS_ODL,
     NeutronGatewayContext,
     L3AgentContext,
+    NeutronDHCPAppArmorContext,
+    NeutronL3AppArmorContext,
+    NeutronLBAASAppArmorContext,
+    NeutronMetadataAppArmorContext,
+    NeutronMeteringAppArmorContext,
+    NovaAPIMetadataAppArmorContext,
+    NEUTRON_DHCP_AA_PROFILE,
+    NEUTRON_L3_AA_PROFILE,
+    NEUTRON_LBAAS_AA_PROFILE,
+    NEUTRON_METADATA_AA_PROFILE,
+    NEUTRON_METERING_AA_PROFILE,
+    NOVA_API_METADATA_AA_PROFILE,
 )
 from charmhelpers.contrib.openstack.neutron import (
     parse_bridge_mappings,
@@ -98,6 +110,20 @@ NEUTRON_PLUGIN_CONF = {
     OVS: NEUTRON_ML2_PLUGIN_CONF,
     NSX: NEUTRON_NSX_PLUGIN_CONF,
 }
+
+
+NEUTRON_DHCP_AA_PROFILE_PATH = ('/etc/apparmor.d/{}'
+                                ''.format(NEUTRON_DHCP_AA_PROFILE))
+NEUTRON_L3_AA_PROFILE_PATH = ('/etc/apparmor.d/{}'
+                              ''.format(NEUTRON_L3_AA_PROFILE))
+NEUTRON_LBAAS_AA_PROFILE_PATH = ('/etc/apparmor.d/{}'
+                                 ''.format(NEUTRON_LBAAS_AA_PROFILE))
+NEUTRON_METADATA_AA_PROFILE_PATH = ('/etc/apparmor.d/{}'
+                                    ''.format(NEUTRON_METADATA_AA_PROFILE))
+NEUTRON_METERING_AA_PROFILE_PATH = ('/etc/apparmor.d/{}'
+                                    ''.format(NEUTRON_METERING_AA_PROFILE))
+NOVA_API_METADATA_AA_PROFILE_PATH = ('/etc/apparmor.d/{}'
+                                     ''.format(NOVA_API_METADATA_AA_PROFILE))
 
 GATEWAY_PKGS = {
     OVS: [
@@ -298,6 +324,10 @@ NOVA_CONFIG_FILES = {
                           context.NotificationDriverContext()],
         'services': ['nova-api-metadata']
     },
+    NOVA_API_METADATA_AA_PROFILE_PATH: {
+        'services': ['nova-api-metadata'],
+        'hook_contexts': [NovaAPIMetadataAppArmorContext()],
+    },
 }
 
 NEUTRON_SHARED_CONFIG_FILES = {
@@ -313,6 +343,26 @@ NEUTRON_SHARED_CONFIG_FILES = {
         'hook_contexts': [NetworkServiceContext(),
                           NeutronGatewayContext()],
         'services': ['neutron-metadata-agent']
+    },
+    NEUTRON_DHCP_AA_PROFILE_PATH: {
+        'services': ['neutron-metadata-agent'],
+        'hook_contexts': [NeutronDHCPAppArmorContext()],
+    },
+    NEUTRON_L3_AA_PROFILE_PATH: {
+        'services': ['neutron-lbaas-agent'],
+        'hook_contexts': [NeutronL3AppArmorContext()],
+    },
+    NEUTRON_LBAAS_AA_PROFILE_PATH: {
+        'services': ['neutron-lbaas-agent'],
+        'hook_contexts': [NeutronLBAASAppArmorContext()],
+    },
+    NEUTRON_METADATA_AA_PROFILE_PATH: {
+        'services': ['neutron-metadata'],
+        'hook_contexts': [NeutronMetadataAppArmorContext()],
+    },
+    NEUTRON_METERING_AA_PROFILE_PATH: {
+        'services': ['neutron-metadata'],
+        'hook_contexts': [NeutronMeteringAppArmorContext()],
     },
 }
 NEUTRON_SHARED_CONFIG_FILES.update(NOVA_CONFIG_FILES)

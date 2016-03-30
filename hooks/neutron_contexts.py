@@ -13,7 +13,8 @@ from charmhelpers.fetch import (
 from charmhelpers.contrib.openstack.context import (
     OSContextGenerator,
     NeutronAPIContext,
-    config_flags_parser
+    config_flags_parser,
+    AppArmorContext,
 )
 from charmhelpers.contrib.hahelpers.cluster import(
     eligible_leader
@@ -41,6 +42,13 @@ CORE_PLUGIN = {
     NSX: NEUTRON_NSX_PLUGIN,
     OVS_ODL: NEUTRON_OVS_ODL_PLUGIN,
 }
+
+NEUTRON_DHCP_AA_PROFILE = 'usr.bin.neutron-dhcp-agent'
+NEUTRON_L3_AA_PROFILE = 'usr.bin.neutron-l3-agent'
+NEUTRON_LBAAS_AA_PROFILE = 'usr.bin.neutron-lbaas-agent'
+NEUTRON_METADATA_AA_PROFILE = 'usr.bin.neutron-metadata-agent'
+NEUTRON_METERING_AA_PROFILE = 'usr.bin.neutron-metering-agent'
+NOVA_API_METADATA_AA_PROFILE = 'usr.bin.nova-api-metadata'
 
 
 def core_plugin():
@@ -149,3 +157,87 @@ def get_shared_secret():
         with open(_path, 'r') as secret_file:
             secret = secret_file.read().strip()
     return secret
+
+
+class NeutronDHCPAppArmorContext(AppArmorContext):
+
+    def __init__(self):
+        super(NeutronDHCPAppArmorContext, self).__init__()
+        self.aa_profile = NEUTRON_DHCP_AA_PROFILE
+
+    def __call__(self):
+        super(NeutronDHCPAppArmorContext, self).__call__()
+        if not self.ctxt:
+            return self.ctxt
+        self._ctxt.update({'aa-profile': self.aa_profile})
+        return self.ctxt
+
+
+class NeutronL3AppArmorContext(AppArmorContext):
+
+    def __init__(self):
+        super(NeutronL3AppArmorContext, self).__init__()
+        self.aa_profile = NEUTRON_L3_AA_PROFILE
+
+    def __call__(self):
+        super(NeutronL3AppArmorContext, self).__call__()
+        if not self.ctxt:
+            return self.ctxt
+        self._ctxt.update({'aa-profile': self.aa_profile})
+        return self.ctxt
+
+
+class NeutronLBAASAppArmorContext(AppArmorContext):
+
+    def __init__(self):
+        super(NeutronLBAASAppArmorContext, self).__init__()
+        self.aa_profile = NEUTRON_LBAAS_AA_PROFILE
+
+    def __call__(self):
+        super(NeutronLBAASAppArmorContext, self).__call__()
+        if not self.ctxt:
+            return self.ctxt
+        self._ctxt.update({'aa-profile': self.aa_profile})
+        return self.ctxt
+
+
+class NeutronMetadataAppArmorContext(AppArmorContext):
+
+    def __init__(self):
+        super(NeutronMetadataAppArmorContext, self).__init__()
+        self.aa_profile = NEUTRON_METADATA_AA_PROFILE
+
+    def __call__(self):
+        super(NeutronMetadataAppArmorContext, self).__call__()
+        if not self.ctxt:
+            return self.ctxt
+        self._ctxt.update({'aa-profile': self.aa_profile})
+        return self.ctxt
+
+
+class NeutronMeteringAppArmorContext(AppArmorContext):
+
+    def __init__(self):
+        super(NeutronMeteringAppArmorContext, self).__init__()
+        self.aa_profile = NEUTRON_METERING_AA_PROFILE
+
+    def __call__(self):
+        super(NeutronMeteringAppArmorContext, self).__call__()
+        if not self.ctxt:
+            return self.ctxt
+        self._ctxt.update({'aa-profile': self.aa_profile})
+        return self.ctxt
+
+
+class NovaAPIMetadataAppArmorContext(AppArmorContext):
+
+    def __init__(self):
+        super(NovaAPIMetadataAppArmorContext, self).__init__()
+        self.aa_profile = NOVA_API_METADATA_AA_PROFILE
+
+    def __call__(self):
+        super(NovaAPIMetadataAppArmorContext, self).__call__()
+        if not self.ctxt:
+            return self.ctxt
+        self._ctxt.update({'aa-profile': self.aa_profile})
+        return self.ctxt

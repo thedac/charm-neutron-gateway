@@ -1,0 +1,11 @@
+# Last Modified: Wed Mar 30 17:57:32 2016
+#include <tunables/global>
+
+/usr/bin/neutron-metering-agent flags=(complain) {
+  #include <abstractions/base>
+  #include <abstractions/python>
+
+  /usr/bin/neutron-metering-agent r,
+  /usr/bin/python2.7 ix,
+
+}

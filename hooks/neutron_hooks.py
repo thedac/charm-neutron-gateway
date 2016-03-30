@@ -69,6 +69,16 @@ from neutron_utils import (
     NEUTRON_COMMON,
 )
 
+from neutron_contexts import (
+    NeutronDHCPAppArmorContext,
+    NeutronL3AppArmorContext,
+    NeutronLBAASAppArmorContext,
+    NeutronMetadataAppArmorContext,
+    NeutronMeteringAppArmorContext,
+    NovaAPIMetadataAppArmorContext,
+)
+
+
 hooks = Hooks()
 CONFIGS = register_configs()
 
@@ -116,6 +126,13 @@ def config_changed():
         if openstack_upgrade_available(NEUTRON_COMMON):
             status_set('maintenance', 'Running openstack upgrade')
             do_openstack_upgrade(CONFIGS)
+
+    NeutronDHCPAppArmorContext().setup_aa_profile()
+    NeutronL3AppArmorContext().setup_aa_profile()
+    NeutronLBAASAppArmorContext().setup_aa_profile()
+    NeutronMetadataAppArmorContext().setup_aa_profile()
+    NeutronMeteringAppArmorContext().setup_aa_profile()
+    NovaAPIMetadataAppArmorContext().setup_aa_profile()
 
     update_nrpe_config()
 
